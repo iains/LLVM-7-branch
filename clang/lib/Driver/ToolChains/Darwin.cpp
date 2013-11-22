@@ -777,6 +777,15 @@ static const char *ArmMachOArchNameCPU(StringRef CPU) {
   return Arch.data();
 }
 
+// In universal driver terms, the arch name accepted by -arch isn't exactly
+// the same as the ones that appear in the triple. Roughly speaking, this is
+// an inverse of the darwin::getArchTypeForDarwinArchName() function
+// special cases:
+// aarch64 => arm64
+// thumb/arm => arm
+// powerpc => ppc
+// powerpc64 => ppc64
+
 StringRef MachO::getMachOArchName(const ArgList &Args) const {
   switch (getTriple().getArch()) {
   default:
@@ -796,6 +805,12 @@ StringRef MachO::getMachOArchName(const ArgList &Args) const {
         return Arch;
 
     return "arm";
+
+  case llvm::Triple::ppc:
+    return "ppc";
+
+  case llvm::Triple::ppc64:
+    return "ppc64";
   }
 }
 

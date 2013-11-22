@@ -217,18 +217,19 @@ ToolChain::getTargetAndModeFromProgramName(StringRef PN) {
 StringRef ToolChain::getDefaultUniversalArchName() const {
   // In universal driver terms, the arch name accepted by -arch isn't exactly
   // the same as the ones that appear in the triple. Roughly speaking, this is
-  // an inverse of the darwin::getArchTypeForDarwinArchName() function, but the
-  // only interesting special case is powerpc.
-  switch (Triple.getArch()) {
-  case llvm::Triple::ppc:
-    return "ppc";
-  case llvm::Triple::ppc64:
-    return "ppc64";
-  case llvm::Triple::ppc64le:
-    return "ppc64le";
-  default:
-    return Triple.getArchName();
+  // an inverse of the darwin::getArchTypeForDarwinArchName() function.
+  if (Triple.isMacOSX())
+    switch (Triple.getArch()) {
+    case llvm::Triple::ppc:
+      return "ppc";
+    case llvm::Triple::ppc64:
+      return "ppc64";
+    case llvm::Triple::aarch64:
+      return "arm64";
+    default:
+      break;
   }
+  return Triple.getArchName();
 }
 
 std::string ToolChain::getInputFilename(const InputInfo &Input) const {
