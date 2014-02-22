@@ -873,8 +873,9 @@ void DarwinClang::addClangWarningOptions(ArgStringList &CC1Args) const {
 
 void DarwinClang::AddLinkARCArgs(const ArgList &Args,
                                  ArgStringList &CmdArgs) const {
-  // Avoid linking compatibility stubs on i386 mac.
-  if (isTargetMacOS() && getArch() == llvm::Triple::x86)
+  // Avoid linking compatibility stubs on i386/ppc mac.
+  if (isTargetMacOS() &&
+      (getArch() == llvm::Triple::x86 || getArch() == llvm::Triple::ppc))
     return;
 
   ObjCRuntime runtime = getDefaultObjCRuntime(/*nonfragile*/ true);
