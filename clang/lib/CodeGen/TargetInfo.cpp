@@ -291,7 +291,8 @@ static Address emitVoidPtrDirectVAArg(CodeGenFunction &CGF,
                                       CharUnits DirectSize,
                                       CharUnits DirectAlign,
                                       CharUnits SlotSize,
-                                      bool AllowHigherAlign) {
+                                      bool AllowHigherAlign,
+                                      bool ForceLeftAdjust=false) {
   // Cast the element type to i8* if necessary.  Some platforms define
   // va_list as a struct containing an i8* instead of just an i8*.
   if (VAListAddr.getElementType() != CGF.Int8PtrTy)
@@ -318,7 +319,7 @@ static Address emitVoidPtrDirectVAArg(CodeGenFunction &CGF,
   // If the argument is smaller than a slot, and this is a big-endian
   // target, the argument will be right-adjusted in its slot.
   if (DirectSize < SlotSize && CGF.CGM.getDataLayout().isBigEndian() &&
-      !DirectTy->isStructTy()) {
+      !DirectTy->isStructTy() && !ForceLeftAdjust) {
     Addr = CGF.Builder.CreateConstInBoundsByteGEP(Addr, SlotSize - DirectSize);
   }
 
@@ -837,7 +838,6 @@ class PNaClTargetCodeGenInfo : public TargetCodeGenInfo {
 void PNaClABIInfo::computeInfo(CGFunctionInfo &FI) const {
   if (!getCXXABI().classifyReturnType(FI))
     FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
-
   for (auto &I : FI.arguments())
     I.info = classifyArgumentType(I.type);
 }
@@ -4055,10 +4055,54 @@ public:
                     QualType Ty) const override;
 };
 
+/// PPC32_DarwinABIInfo - 32-bit PowerPC Mach-O ABI information.
+class PPC32_DarwinABIInfo : public DefaultABIInfo {
+
+  static const unsigned MinABIStackAlignInBytes = 4;
+
+  /// getIndirectResult - Give a source type \arg Ty, return a suitable result
+  /// such that the argument will be passed in memory.
+  ABIArgInfo getIndirectResult(QualType Ty, bool ByVal) const;
+
+  ABIArgInfo getIndirectReturnResult(QualType Ty) const {
+    return getNaturalAlignIndirectInReg(Ty);
+  }
+
+  /// \brief Return the alignment to use for the given type on the stack.
+  unsigned getTypeStackAlignInBytes(QualType Ty, unsigned Align) const;
+  ABIArgInfo classifyReturnType(QualType RetTy) const;
+//  ABIArgInfo classifyArgumentType(QualType RetTy, bool isVariadic) const;
+  ABIArgInfo classifyArgumentType(QualType Ty, bool isVariadic,
+                                  int &GPRs) const;
+
+public:
+  PPC32_DarwinABIInfo(CodeGen::CodeGenTypes &CGT)
+    : DefaultABIInfo(CGT) {
+ 
+  assert (CGT.getDataLayout().isBigEndian() && "we should be BE");
+   
+    }
+
+  void computeInfo(CGFunctionInfo &FI) const override {
+    int GPRsLeft;
+    if (!getCXXABI().classifyReturnType(FI))
+      FI.getReturnInfo() = classifyReturnType(FI.getReturnType());
+    if (FI.getReturnInfo().isIndirect())
+      GPRsLeft = 7;
+    else
+      GPRsLeft = 8;
+    for (auto &I : FI.arguments())
+      I.info = classifyArgumentType(I.type, FI.isVariadic(), GPRsLeft);
+  }
+  Address EmitVAArg(CodeGenFunction &CGF, Address VAListAddr,
+                    QualType Ty) const override;
+
+};
+
 class PPC32TargetCodeGenInfo : public TargetCodeGenInfo {
 public:
-  PPC32TargetCodeGenInfo(CodeGenTypes &CGT, bool SoftFloatABI)
-      : TargetCodeGenInfo(new PPC32_SVR4_ABIInfo(CGT, SoftFloatABI)) {}
+  PPC32TargetCodeGenInfo(ABIInfo *ABIToUse)
+  : TargetCodeGenInfo(ABIToUse) {}
 
   int getDwarfEHStackPointer(CodeGen::CodeGenModule &M) const override {
     // This is recovered from gcc output.
@@ -4249,6 +4293,255 @@ Address PPC32_SVR4_ABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAList,
   }
 
   return Result;
+}
+
+ABIArgInfo
+PPC32_DarwinABIInfo::getIndirectResult(QualType Ty, bool ByVal) const {
+  if (!ByVal) {
+    return getNaturalAlignIndirect(Ty, false);
+  }
+
+  // Compute the byval alignment.
+  unsigned TypeAlign = getContext().getTypeAlign(Ty) / 8;
+  unsigned StackAlign = getTypeStackAlignInBytes(Ty, TypeAlign);
+  if (StackAlign == 0)
+    return ABIArgInfo::getIndirect(CharUnits::fromQuantity(4), /*ByVal=*/true);
+
+  // If the stack alignment is less than the type alignment, realign the
+  // argument.
+  bool Realign = TypeAlign > StackAlign;
+  return ABIArgInfo::getIndirect(CharUnits::fromQuantity(StackAlign),
+                                 /*ByVal=*/true, Realign);
+}
+
+unsigned
+PPC32_DarwinABIInfo::getTypeStackAlignInBytes(QualType Ty,
+                                                 unsigned Align) const {
+
+  // Otherwise, if the alignment is less than or equal to the minimum ABI
+  // alignment, just use the default; the backend will handle this.
+  //if (Align <= MinABIStackAlignInBytes)
+  //  return Align; // Use default alignment.
+
+  if (Ty->isVectorType())
+    return 16U;
+
+  return MinABIStackAlignInBytes;
+}
+
+// Try to deal with our special cases.
+ABIArgInfo
+PPC32_DarwinABIInfo::classifyArgumentType(QualType Ty,
+                                          bool isVariadic, int &GPRs) const {
+
+  Ty = useFirstFieldIfTransparentUnion(Ty);
+  uint64_t Size = getContext().getTypeSize(Ty);
+  uint64_t Align = getContext().getTypeAlign(Ty);
+  auto StackAlign = CharUnits::fromQuantity(MinABIStackAlignInBytes);
+  bool GPRs_left = GPRs > 0;
+
+  if (Ty->isVoidType() || Size == 0)
+    // Darwin ignores zero-sized items.
+    return ABIArgInfo::getIgnore();
+
+  // Several things are passed as anonymous blobs, cast to a "Size" chunk
+  // of bits (rounded to 32b in the case of aggregates).
+  auto AnonIntType = llvm::IntegerType::get(getVMContext(), Size);
+
+  // Almost everything uses up GPRs at first - even passing FP values
+  // marks off the corresponding GPRs.
+  GPRs -= (Size+31)/32;
+
+  // All complex quantities (including float, double and long double) are
+  // passed as anonymous int blobs, and similarly returned as a cast to
+  // an iNNN.  To save on compile time, use byvals if there's no chance
+  // that this will end up in regs.
+  if (Ty->isAnyComplexType()) {
+    if (Size <= 32 || GPRs_left)
+      return ABIArgInfo::getDirect(AnonIntType);
+    bool ReAlign = Align > MinABIStackAlignInBytes;
+    return ABIArgInfo::getIndirect(StackAlign, /*ByVal=*/true, ReAlign);
+  }
+
+  // Aggregates have some wrinkles.
+  if (isAggregateTypeForABI(Ty)) {
+    // Check with the C++ ABI first;
+    // Structures with non-trivial destructors or copy constructors
+    // are always indirect (and must not be byval).
+    if (CGCXXABI::RecordArgABI RAA = getRecordArgABI(Ty, getCXXABI()))
+      return getIndirectResult(Ty,
+                         /*byval*/RAA == CGCXXABI::RAA_DirectInMemory);
+
+    const RecordType *UT = Ty->getAsUnionType();
+    if (Size < 128 && !UT) {
+      if (const Type *T = isSingleElementStruct(Ty, getContext())) {
+        if (const BuiltinType *BT = T->getAs<BuiltinType>()) {
+          // ... the content is one simple entity and t's a built-in type
+          // smaller than long double.
+          if (BT->isBooleanType())
+            return ABIArgInfo::getDirect();
+          QualType QT(T, 0);
+          return ABIArgInfo::getDirect(CGT.ConvertType(QT));
+        }
+      }
+      // otherwise, fall through to handle non-builtin or types >= 128b.
+    }
+
+    // Passed directly as a blob in line on the stack (regardless of content
+    // the on-stack alignment is 4 bytes and the data represented as iNNNN).
+
+    // A) 1 and 2 byte objects, are aligned to the LSByte, which
+    // 'just works' because type-legalisation pushes quantities to the LS end
+    // of their legalized container ...
+    if (Size < 24)
+      return ABIArgInfo::getDirect(AnonIntType);
+
+    // .. unfortunately, because of that, passing other aggregates as "iNNN"
+    // doesn't work at present, since the ABI expects the bytes to be aligned
+    // to the MS of the first stack offset
+    // So we apply some trickery to get stuff aligned as we expect.
+
+    // B) If we have *any* GPRs avail, we break the object up into 32bit chunks
+    //    because the GCC-4 ABI passes such objects partially in regs and
+    //    partially on the stack (which is very hard to arrange when doing our
+    //    funky byval dodge).
+    if (GPRs_left) {
+      unsigned Elements;
+      Elements = (Size+31) / 32;
+      auto ElType = llvm::IntegerType::get(getVMContext(),32);
+      auto Coerce = llvm::ArrayType::get(ElType, Elements);
+      return ABIArgInfo::getDirect(Coerce);
+    }
+
+    // C) Whilst we _could_ do the array trick for larger entities, the
+    // compile-time penalty of massive argument counts pushes us to use
+    // byvals.  To match the GCC ABI we will actually put the values in-line
+    // on the stack (exactly the same as for other args).
+    bool ReAlign = Align > MinABIStackAlignInBytes;
+    return ABIArgInfo::getIndirect(StackAlign, /*ByVal=*/true, ReAlign);
+
+  } // aggregate.
+
+  if (const VectorType *VT = Ty->getAs<VectorType>()) {
+    if (Size == 128) {
+      // We have a special case here;  The ABI supports v2{di,df} but
+      // these are not actually Altivec types, so are passed in memory.  The
+      // back end has to deal with this...
+      if (const BuiltinType *BT = VT->getElementType()->getAs<BuiltinType>()) {
+        if((BT->getKind() == BuiltinType::LongLong) ||
+           (BT->getKind() == BuiltinType::ULongLong) ||
+           (BT->getKind() == BuiltinType::Double)) {
+          if (isVariadic)
+           // The presence of a 'special' vector will force the stack to jump.
+           GPRs = 0;
+          return ABIArgInfo::getDirect();
+        }
+      }
+      // For non-variadic functions, Altivec Vectors don't 'consume' any GPRs
+      // (for variadic, they shadow as long as some remain).
+      if (!isVariadic)
+        GPRs += 4; // Give back 4 regs .
+      // When it's a native Altivec size, say we will pass in regs.
+      return ABIArgInfo::getDirect(CGT.ConvertType(Ty));
+    } else if (Size < 128)
+      // If it's smaller than one vec reg, pass as an anonymous blob.
+      return ABIArgInfo::getDirect(AnonIntType);
+    else
+      // Otherwise, by reference.
+      // FIXME: GCC produces a warning about doing this (saying it's non-
+      // standard and behaviour not guaranteed) however, there doesn't seem
+      // to be an option to do different.  Perhaps we could have a compat
+      // mode and use regs by default?
+      return getIndirectResult(Ty, false);
+  } // vector.
+
+  // Treat an enum type as its underlying type.
+  if (const EnumType *EnumTy = Ty->getAs<EnumType>())
+    Ty = EnumTy->getDecl()->getIntegerType();
+
+  if (Ty->isBooleanType())
+    return ABIArgInfo::getDirect();/*getExtend(llvm::IntegerType::get(getVMContext(),32));*/
+
+  return (Ty->isPromotableIntegerType() ?
+          ABIArgInfo::getExtend(Ty) : ABIArgInfo::getDirect());
+}
+
+ABIArgInfo
+PPC32_DarwinABIInfo::classifyReturnType(QualType RetTy) const {
+  uint64_t Size = getContext().getTypeSize(RetTy);
+
+  // We need to process complex before aggregate.
+  bool IsAggregateType = isAggregateTypeForABI(RetTy);
+
+  // We will reserve the sret for 0-sized aggregates.
+  if (RetTy->isVoidType() || (Size == 0 && !IsAggregateType))
+    return ABIArgInfo::getIgnore();
+
+  // .. but we need to check for complex types first lest they be mistaken for
+  // aggregates (we return these directly for all ABI-supported types).
+  if (RetTy->isAnyComplexType())
+    // This goes up to i256 for complex long double.
+    return ABIArgInfo::getDirect(llvm::IntegerType::get(getVMContext(), Size));
+
+  // We return all aggregates by ref.
+  if (IsAggregateType)
+    return getIndirectReturnResult(RetTy);
+
+  if (const VectorType *VT = RetTy->getAs<VectorType>()) {
+    // See comments in classifyArgumentType, above.
+    if (Size == 128) {
+      if (const BuiltinType *BT = VT->getElementType()->getAs<BuiltinType>()) {
+        if((BT->getKind() == BuiltinType::LongLong) ||
+           (BT->getKind() == BuiltinType::ULongLong) ||
+           (BT->getKind() == BuiltinType::Double)) {
+          // bitcast v2di and v2df to i128.
+          return ABIArgInfo::getDirect(llvm::IntegerType::get(getVMContext(), Size));
+        }
+      }
+      return ABIArgInfo::getDirect(CGT.ConvertType(RetTy));
+    } else if (Size < 128)
+      return ABIArgInfo::getDirect(llvm::IntegerType::get(getVMContext(), Size));
+    else
+      return getIndirectReturnResult(RetTy);
+  }
+
+  // Treat an enum type as its underlying type.
+  if (const EnumType *EnumTy = RetTy->getAs<EnumType>())
+    RetTy = EnumTy->getDecl()->getIntegerType();
+
+  if (RetTy->isBooleanType())
+    return ABIArgInfo::getDirect();/*getExtend(llvm::IntegerType::get(getVMContext(),32));*/
+
+  // Otherwise, put it in a relevant reg.
+  return (RetTy->isPromotableIntegerType() ?
+          ABIArgInfo::getExtend(RetTy) : ABIArgInfo::getDirect());
+}
+
+Address PPC32_DarwinABIInfo::EmitVAArg(CodeGenFunction &CGF, Address VAList,
+                                      QualType Ty) const {
+  auto TypeInfo = getContext().getTypeInfoInChars(Ty);
+  auto OrigAlign = TypeInfo.second.getQuantity();
+
+  /* Deal with aggregate wierdness - different padding order depending on
+     the size of aggregates.  */
+  if (TypeInfo.first >= CharUnits::fromQuantity(3))
+    if(Ty->getAs<RecordType>()) {
+       llvm::Type *DirectTy = CGF.ConvertTypeForMem(Ty);
+       return emitVoidPtrDirectVAArg(CGF, VAList, DirectTy,
+                                     /*Type size*/TypeInfo.first,
+                                     /*Type align*/CharUnits::fromQuantity(1),
+                                     /*SlotSizeAndalign*/ CharUnits::fromQuantity(4),
+                                     /*AllowHigherAlign*/ false,
+                                     /*ForceLeftAdjust*/ true);
+    }
+
+  /* Dtherwise, do the 'usual' thing for now.  */
+  TypeInfo.second = CharUnits::fromQuantity(
+                               getTypeStackAlignInBytes(Ty, OrigAlign));
+  bool AllowHigherAlign = Ty->isVectorType(); 
+  return emitVoidPtrVAArg(CGF, VAList, Ty, /*Indirect*/ false,
+                          TypeInfo, CharUnits::fromQuantity(4),
+                          AllowHigherAlign);
 }
 
 bool
@@ -9089,9 +9382,16 @@ const TargetCodeGenInfo &CodeGenModule::getTargetCodeGenInfo() {
     return SetCGInfo(new ARMTargetCodeGenInfo(Types, Kind));
   }
 
-  case llvm::Triple::ppc:
-    return SetCGInfo(
-        new PPC32TargetCodeGenInfo(Types, CodeGenOpts.FloatABI == "soft"));
+  case llvm::Triple::ppc: {
+    if (Triple.isOSDarwin())
+     return SetCGInfo(new PPC32TargetCodeGenInfo(new PPC32_DarwinABIInfo(Types)));
+
+    // The assumption that !Darwin == SVR4 is probably OK for now but
+    // should be reviewed as more targets are added.
+    return SetCGInfo(new PPC32TargetCodeGenInfo(new PPC32_SVR4_ABIInfo(Types,
+                                        CodeGenOpts.FloatABI == "soft")));
+  }
+
   case llvm::Triple::ppc64:
     if (Triple.isOSBinFormatELF()) {
       PPC64_SVR4_ABIInfo::ABIKind Kind = PPC64_SVR4_ABIInfo::ELFv1;
