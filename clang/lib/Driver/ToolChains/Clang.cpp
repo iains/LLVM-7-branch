@@ -4124,6 +4124,47 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
                     options::OPT_mno_stack_arg_probe, true))
     CmdArgs.push_back(Args.MakeArgString("-mno-stack-arg-probe"));
 
+  // Deal with OSX PowerPC alignment options.
+  Arg *alignOptArg = Args.getLastArg(options::OPT_malign_power,
+                                     options::OPT_malign_natural,
+                                     options::OPT_malign_mac68k);
+
+  // Deal with OSX PowerPC long-double size options.
+  Arg *mldblOptArg = Args.getLastArg(options::OPT_mlong_double_128,
+                                     options::OPT_mlong_double_64);
+
+  if (getToolChain().getTriple().isOSDarwin() &&
+      getToolChain().getArch() == llvm::Triple::ppc) {
+    // The default is power alignment.
+    if (! alignOptArg
+        || alignOptArg->getOption().matches(options::OPT_malign_power)) {
+      CmdArgs.push_back("-malign-power");
+    } else
+      if (alignOptArg->getOption().matches(options::OPT_malign_natural)) {
+      CmdArgs.push_back("-malign-natural");
+    } else {
+      CmdArgs.push_back("-malign-mac68k");
+    }
+    //CmdArgs.push_back("-backend-option");
+    if (! mldblOptArg
+        || mldblOptArg->getOption().matches(options::OPT_mlong_double_128))
+      //CmdArgs.push_back("-ppc-osx-long-double-128");
+      CmdArgs.push_back("-mlong-double-128");
+    else
+      //CmdArgs.push_back("-ppc-osx-long-double-64");
+      CmdArgs.push_back("-mlong-double-64");
+    if (Args.hasArg(options::OPT_mone_byte_bool))
+      CmdArgs.push_back("-mone-byte-bool");
+  } else {
+    if (alignOptArg)
+    // FIXME: Decide if we want to accept the mac68k mode for i386-darwin.
+    D.Diag(diag::err_drv_argument_only_allowed_with)
+           << alignOptArg->getAsString(Args) << "OSX ppc";
+    if (mldblOptArg)
+      D.Diag(diag::err_drv_argument_only_allowed_with)
+           << mldblOptArg->getAsString(Args) << "OSX ppc";
+  }
+
   if (Arg *A = Args.getLastArg(options::OPT_mrestrict_it,
                                options::OPT_mno_restrict_it)) {
     if (A->getOption().matches(options::OPT_mrestrict_it)) {
