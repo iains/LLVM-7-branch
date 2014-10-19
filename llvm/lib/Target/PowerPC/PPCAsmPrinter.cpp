@@ -569,17 +569,20 @@ void PPCAsmPrinter::EmitInstruction(const MachineInstr *MI) {
   case PPC::MovePCtoLR:
   case PPC::MovePCtoLR8: {
     // Transform %lr = MovePCtoLR
-    // Into this, where the label is the PIC base:
-    //     bl L1$pb
+    // Into this:
+    //     bcl 20,31,L1$pb
     // L1$pb:
+    // where the label "L1$pb" is the PIC base
+    // Note that bcl 20,31,L1$pb is preferable to bl L1$pb because (at least
+    // for some PPC variants) it is recognised specially and does not pollute
+    // the link stack.
     MCSymbol *PICBase = MF->getPICBaseSymbol();
 
-    // Emit the 'bl'.
-    EmitToStreamer(*OutStreamer,
-                   MCInstBuilder(PPC::BL)
-                       // FIXME: We would like an efficient form for this, so we
-                       // don't have to do a lot of extra uniquing.
-                       .addExpr(MCSymbolRefExpr::create(PICBase, OutContext)));
+    // Emit the 'bcl 20,31'.
+    EmitToStreamer(*OutStreamer, MCInstBuilder(PPC::BCLalways)
+      // FIXME: We would like an efficient form for this, so we don't have to do
+      // a lot of extra uniquing.
+      .addExpr(MCSymbolRefExpr::create(PICBase, OutContext)));
 
     // Emit the label.
     OutStreamer->EmitLabel(PICBase);
