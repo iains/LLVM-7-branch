@@ -45,6 +45,8 @@
 //
 // CHECK-NO-UNUSED-ARG-NOT: argument unused during compilation
 //
+// CHECK-DARWIN-DYNAMIC-NO-PIC-OVERRIDE: warning: '-mdynamic-no-pic' overrides '-fpic', '-fPIC', '-fpie' or '-fPIE'
+//
 // RUN: %clang -c %s -target i386-unknown-unknown -### 2>&1 \
 // RUN:   | FileCheck %s --check-prefix=CHECK-NO-PIC
 // RUN: %clang -c %s -target i386-unknown-unknown -fpic -### 2>&1 \
@@ -212,12 +214,21 @@
 // RUN:   | FileCheck %s --check-prefix=CHECK-DYNAMIC-NO-PIC-32
 // RUN: %clang -c %s -target i386-apple-darwin -mdynamic-no-pic -fpie -### 2>&1 \
 // RUN:   | FileCheck %s --check-prefix=CHECK-DYNAMIC-NO-PIC-32
+// RUN: %clang -c %s -target i386-apple-darwin -mdynamic-no-pic \
+// RUN: -mno-dynamic-no-pic -### 2>&1 | FileCheck %s --check-prefix=CHECK-PIC2
+// RUN: %clang -c %s -target i386-apple-darwin -mdynamic-no-pic -fPIC  -### 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=CHECK-DARWIN-DYNAMIC-NO-PIC-OVERRIDE
+//
 // RUN: %clang -c %s -target x86_64-apple-darwin -mdynamic-no-pic -### 2>&1 \
 // RUN:   | FileCheck %s --check-prefix=CHECK-DYNAMIC-NO-PIC-64
 // RUN: %clang -c %s -target x86_64-apple-darwin -mdynamic-no-pic -fno-pic -### 2>&1 \
 // RUN:   | FileCheck %s --check-prefix=CHECK-DYNAMIC-NO-PIC-64
 // RUN: %clang -c %s -target x86_64-apple-darwin -mdynamic-no-pic -fpie -### 2>&1 \
 // RUN:   | FileCheck %s --check-prefix=CHECK-DYNAMIC-NO-PIC-64
+// RUN: %clang -c %s -target x86_64-apple-darwin -mdynamic-no-pic \
+// RUN: -mno-dynamic-no-pic -### 2>&1 | FileCheck %s --check-prefix=CHECK-PIC2
+// RUN: %clang -c %s -target x86_64-apple-darwin -mdynamic-no-pic -fPIC  -### 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=CHECK-DARWIN-DYNAMIC-NO-PIC-OVERRIDE
 //
 // Checks for ARM+Apple+IOS including -fapple-kext, -mkernel, and iphoneos
 // version boundaries.

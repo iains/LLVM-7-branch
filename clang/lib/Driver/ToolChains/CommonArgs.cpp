@@ -987,14 +987,28 @@ tools::ParsePICArgs(const ToolChain &ToolChain, const ArgList &Args) {
        !EffectiveTriple.isWatchOS()))
     PIC = PIE = false;
 
-  if (Arg *A = Args.getLastArg(options::OPT_mdynamic_no_pic)) {
-    // This is a very special mode. It trumps the other modes, almost no one
-    // uses it, and it isn't even valid on any OS but Darwin.
-    if (!Triple.isOSDarwin())
-      ToolChain.getDriver().Diag(diag::err_drv_unsupported_opt_for_target)
+  // Deal with the special case of mdynamic-no-pic.
+  bool IsDynamicNoPic = false;
+  if (Arg *A = Args.getLastArg(options::OPT_mdynamic_no_pic,
+                               options::OPT_mno_dynamic_no_pic)) {
+    if (A->getOption().matches(options::OPT_mdynamic_no_pic)) {
+      // This is a very special mode which isn't valid on any OS but
+      // Darwin.
+      if (Triple.isOSDarwin())
+        IsDynamicNoPic = true;
+      else
+        ToolChain.getDriver()
+          .Diag(diag::err_drv_unsupported_opt_for_target)
           << A->getSpelling() << Triple.str();
+    }
+  }
 
-    // FIXME: Warn when this flag trumps some other PIC or PIE flag.
+  if (IsDynamicNoPic) {
+    // This mode trumps all other PIC and PIE modes.  The only current use
+    // case is for 32bit binaries (on Darwin, as noted above).
+    // Warn if it's presented along with any other PIC or PIE option.
+    if (LastPICArg)
+      ToolChain.getDriver().Diag(diag::warn_mdynamic_no_pic_override);
 
     // Only a forced PIC mode can cause the actual compile to have PIC defines
     // etc., no flags are sufficient. This behavior was selected to closely
