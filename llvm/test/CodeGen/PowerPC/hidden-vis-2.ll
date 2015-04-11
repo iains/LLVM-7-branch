@@ -1,4 +1,4 @@
-; RUN: llc -verify-machineinstrs < %s -mtriple=powerpc-apple-darwin9 | FileCheck %s
+; RUN: llc -verify-machineinstrs < %s -mtriple=powerpc-apple-darwin9 -relocation-model=dynamic-no-pic | FileCheck %s
 
 ; CHECK: lis r2, ha16(L_x$non_lazy_ptr)
 ; CHECK: lis r3, ha16(L_y$non_lazy_ptr)

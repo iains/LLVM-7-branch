@@ -1,4 +1,5 @@
-; RUN: llc -verify-machineinstrs < %s -mtriple=powerpc-apple-darwin -mattr=+altivec -disable-ppc-ilp-pref  | FileCheck %s
+; RUN: llc -verify-machineinstrs < %s -mtriple=powerpc-apple-darwin -mattr=+altivec -disable-ppc-ilp-pref -relocation-model=dynamic-no-pic | FileCheck %s
+
 ; Formerly this did byte loads and word stores.
 @a = external global <16 x i8>
 @b = external global <16 x i8>

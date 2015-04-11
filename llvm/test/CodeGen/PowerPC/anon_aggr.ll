@@ -1,6 +1,6 @@
 ; RUN: llc -verify-machineinstrs -O0 -mcpu=ppc64 -mtriple=powerpc64-unknown-linux-gnu -fast-isel=false < %s | FileCheck %s
-; RUN: llc -verify-machineinstrs -O0 -mcpu=g4 -mtriple=powerpc-apple-darwin8 < %s | FileCheck -check-prefix=DARWIN32 %s
-; RUN: llc -verify-machineinstrs -O0 -mcpu=970 -mtriple=powerpc64-apple-darwin8 < %s | FileCheck -check-prefix=DARWIN64 %s
+; RUN: llc -verify-machineinstrs -O0 -mcpu=g4 -mtriple=powerpc-apple-darwin8 -relocation-model=dynamic-no-pic < %s | FileCheck -check-prefix=DARWIN32 %s
+; RUN: llc -verify-machineinstrs -O0 -mcpu=970 -mtriple=powerpc64-apple-darwin8 -relocation-model=dynamic-no-pic < %s | FileCheck -check-prefix=DARWIN64 %s
 
 ; Test case for PR 14779: anonymous aggregates are not handled correctly.
 ; Darwin bug report PR 15821 is similar.
@@ -47,7 +47,6 @@ unequal:
 ; DARWIN64: ld r3, -[[OFFSET1]]
 ; DARWIN64: ld r3, -[[OFFSET2]]
 
-
 define i8* @func2({ i64, i8* } %array1, %tarray* byval %array2) {
 entry:
   %array1_ptr = extractvalue {i64, i8* } %array1, 1
@@ -91,7 +90,6 @@ unequal:
 ; DARWIN64: ld r3, -[[OFFSET1]]
 ; DARWIN64: ld r3, -[[OFFSET2]]
 
-
 define i8* @func3({ i64, i8* }* byval %array1, %tarray* byval %array2) {
 entry:
   %tmp1 = getelementptr inbounds { i64, i8* }, { i64, i8* }* %array1, i32 0, i32 1
@@ -134,7 +132,6 @@ unequal:
 ; DARWIN64: std r[[REG3]], -[[OFFSET2:[0-9]+]]
 ; DARWIN64: ld r3, -[[OFFSET1]]
 ; DARWIN64: ld r3, -[[OFFSET2]]
-
 
 define i8* @func4(i64 %p1, i64 %p2, i64 %p3, i64 %p4,
                   i64 %p5, i64 %p6, i64 %p7, i64 %p8,

@@ -3,7 +3,7 @@
 ; RUN: llc -verify-machineinstrs < %s -mtriple=powerpc-unknown-linux-gnu | \
 ; RUN: FileCheck --check-prefix=LINUX %s
 ;
-; RUN: llc -verify-machineinstrs < %s -mtriple=powerpc-apple-darwin | \
+; RUN: llc -verify-machineinstrs < %s -mtriple=powerpc-apple-darwin -relocation-model=dynamic-no-pic | \
 ; RUN: FileCheck --check-prefix=OSX %s
 
 ; LINUX: .Lfoo:
