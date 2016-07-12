@@ -138,6 +138,9 @@ static std::string getDataLayoutString(const Triple &T) {
   else
     Ret += "-n32";
 
+  if (T.isOSDarwin() && !is64Bit)
+    Ret += "-i1:32:32"; // Bools are 32 bit on Darwin32.
+
   return Ret;
 }
 
