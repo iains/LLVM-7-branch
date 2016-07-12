@@ -414,6 +414,12 @@ public:
     MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 32;
   }
 
+  // Respond to the change in alignment for 64bit entities when embedded in
+  // an aggregate.
+  unsigned getEmbeddedAlignForSize(unsigned Size) const override {
+    return Size == 64 ? 32 : Size;
+  }
+
   BuiltinVaListKind getBuiltinVaListKind() const override {
     return TargetInfo::CharPtrBuiltinVaList;
   }

@@ -92,6 +92,8 @@
 #include <tuple>
 #include <utility>
 
+#include "llvm/Support/Debug.h"
+
 using namespace clang;
 
 unsigned ASTContext::NumImplicitDefaultConstructors;
@@ -1496,6 +1498,7 @@ CharUnits ASTContext::getDeclAlign(const Decl *D, bool ForAlignof) const {
   unsigned Align = Target->getCharWidth();
 
   bool UseAlignAttrOnly = false;
+  bool IsField = isa<FieldDecl>(D);
   if (unsigned AlignFromAttr = D->getMaxAlignment()) {
     Align = AlignFromAttr;
 
@@ -1505,22 +1508,25 @@ CharUnits ASTContext::getDeclAlign(const Decl *D, bool ForAlignof) const {
     //
     // It is an error for alignas to decrease alignment, so we can
     // ignore that possibility;  Sema should diagnose it.
-    if (isa<FieldDecl>(D)) {
+    if (IsField) {
       UseAlignAttrOnly = D->hasAttr<PackedAttr>() ||
         cast<FieldDecl>(D)->getParent()->hasAttr<PackedAttr>();
     } else {
       UseAlignAttrOnly = true;
     }
   }
-  else if (isa<FieldDecl>(D))
+  else if (IsField) {
       UseAlignAttrOnly =
         D->hasAttr<PackedAttr>() ||
         cast<FieldDecl>(D)->getParent()->hasAttr<PackedAttr>();
+  }
 
   // If we're using the align attribute only, just ignore everything
   // else about the declaration and its type.
   if (UseAlignAttrOnly) {
     // do nothing
+//if (IsField && ForAlignof) {
+//  llvm::dbgs() << "use align only - Align in " << Align << " decl: "; D->dump();}
   } else if (const auto *VD = dyn_cast<ValueDecl>(D)) {
     QualType T = VD->getType();
     if (const auto *RT = T->getAs<ReferenceType>()) {
@@ -1545,9 +1551,66 @@ CharUnits ASTContext::getDeclAlign(const Decl *D, bool ForAlignof) const {
             Align = std::max(Align, Target->getLargeArrayAlign());
         }
       }
-      Align = std::max(Align, getPreferredTypeAlign(T.getTypePtr()));
+
+      if (IsField && ForAlignof) {
+//  llvm::dbgs() << " to check  type: "; T.dump();
+        if (const ArrayType *AT = getAsArrayType(T)) {
+          T = AT->getElementType();
+        }
+        T = T.getCanonicalType();
+//   llvm::dbgs() << " canonical type: "; T.dump();
+        auto TypeP = T.getTypePtr();
+        unsigned ABIAlign;
+        auto NT = T;
+        // If we have a typedef, pull out the underlying type.
+        if (TypeP->getTypeClass() == Type::Typedef) {
+          const TypedefNameDecl *Typedef = cast<TypedefType>(T)->getDecl();
+          NT = Typedef->getUnderlyingType();
+          TypeP = NT.getTypePtr();
+          // We might need to inspect modes?
+//          if (const auto *M = Typedef->getAttr<ModeAttr>()) {
+//            IdentifierInfo *MI = M->getMode();
+//            llvm::dbgs() << " has mode: " << MI->getName(); 
+//          }
+        } else if (TypeP->getTypeClass() == Type::Elaborated) {
+          auto TT = cast<ElaboratedType>(TypeP)->getNamedType();
+          //auto TT = T->getUnqualifiedDesugaredType();
+          auto TP = TT.getTypePtr();
+//  llvm::dbgs() << " named type: "; TT->dump();
+          if (TP->getTypeClass() == Type::Enum) {
+            NT = TT;
+            TypeP = TP;
+          }
+        }
+        if (TypeP->getTypeClass() == Type::Enum) {
+          const TagType *TT = cast<TagType>(NT);
+          if (const EnumType *ET = dyn_cast<EnumType>(TT)) {
+            const EnumDecl *ED = ET->getDecl();
+            NT = ED->getIntegerType();
+//  llvm::dbgs() << " NEW type: "; NT->dump();
+            TypeP = NT->getUnqualifiedDesugaredType();
+          }
+        }
+        ABIAlign = getPreferredTypeAlign(TypeP);
+        if(TypeP->getTypeClass() == Type::Builtin) {
+//  llvm::dbgs() << " get FD align ABI " << ABIAlign  << " Align in " << Align << " to check decl: "; VD->dump();
+          switch (cast<BuiltinType>(NT)->getKind()) {
+          default:
+            break;
+          case BuiltinType::ULongLong:
+          case BuiltinType::LongLong:
+          case BuiltinType::Double:
+            ABIAlign = Target->getEmbeddedAlignForSize(64);
+            break;
+          }
+        }
+        Align = std::max(Align, ABIAlign);
+      } else
+       Align = std::max(Align, getPreferredTypeAlign(T.getTypePtr()));
+
       if (BaseT.getQualifiers().hasUnaligned())
         Align = Target->getCharWidth();
+
       if (const auto *VD = dyn_cast<VarDecl>(D)) {
         if (VD->hasGlobalStorage() && !ForAlignof)
           Align = std::max(Align, getTargetInfo().getMinGlobalAlign());
