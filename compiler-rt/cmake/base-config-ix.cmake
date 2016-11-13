@@ -92,7 +92,9 @@ if(APPLE)
   # On Darwin if /usr/include doesn't exist, the user probably has Xcode but not
   # the command line tools. If this is the case, we need to find the OS X
   # sysroot to pass to clang.
-  if(NOT EXISTS /usr/include)
+  if(COMPILER_RT_SDKS_ROOT)
+    set(OSX_SYSROOT_FLAG "-isysroot${COMPILER_RT_SDKS_ROOT}/MacOSX10.10.sdk")
+  elseif(NOT EXISTS /usr/include)
     execute_process(COMMAND xcodebuild -version -sdk macosx Path
        OUTPUT_VARIABLE OSX_SYSROOT
        ERROR_QUIET
@@ -100,7 +102,7 @@ if(APPLE)
     set(OSX_SYSROOT_FLAG "-isysroot${OSX_SYSROOT}")
   endif()
 
-  option(COMPILER_RT_ENABLE_IOS "Enable building for iOS" On)
+  option(COMPILER_RT_ENABLE_IOS "Enable building for iOS" Off)
   option(COMPILER_RT_ENABLE_WATCHOS "Enable building for watchOS - Experimental" Off)
   option(COMPILER_RT_ENABLE_TVOS "Enable building for tvOS - Experimental" Off)
 
