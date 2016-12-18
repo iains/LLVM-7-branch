@@ -22,6 +22,7 @@
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SwapByteOrder.h"
 #include "llvm/Support/Debug.h"
+#include "llvm/Support/string_compat.h"
 #include <cstring>
 #include <memory>
 using namespace clang;

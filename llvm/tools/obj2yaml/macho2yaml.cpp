@@ -14,8 +14,9 @@
 #include "llvm/ObjectYAML/ObjectYAML.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/LEB128.h"
+#include "llvm/Support/string_compat.h"
 
-#include <string.h> // for memcpy
+#include <cstring>
 
 using namespace llvm;
 

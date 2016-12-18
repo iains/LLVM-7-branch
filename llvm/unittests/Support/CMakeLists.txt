@@ -52,6 +52,7 @@ add_llvm_unittest(SupportTests
   SourceMgrTest.cpp
   SpecialCaseListTest.cpp
   StringPool.cpp
+  StrnlenTest.cpp
   SwapByteOrderTest.cpp
   TarWriterTest.cpp
   TargetParserTest.cpp

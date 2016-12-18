@@ -16,6 +16,7 @@
 #include "llvm/BinaryFormat/MachO.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/Host.h"
+#include "llvm/Support/string_compat.h"
 #include "llvm/Support/YAMLTraits.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cinttypes>
