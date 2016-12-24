@@ -10,6 +10,7 @@
 #include "MCTargetDesc/PPCMCExpr.h"
 #include "MCTargetDesc/PPCMCTargetDesc.h"
 #include "PPCTargetStreamer.h"
+#include "PPCMcpu.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringSwitch.h"
 #include "llvm/ADT/Twine.h"
@@ -263,6 +264,7 @@ struct PPCOperand;
 class PPCAsmParser : public MCTargetAsmParser {
   bool IsPPC64;
   bool IsDarwin;
+  bool ForceCPUSubTypeAll;
 
   void Warning(SMLoc L, const Twine &Msg) { getParser().Warning(L, Msg); }
 
@@ -313,6 +315,7 @@ public:
     IsPPC64 = (TheTriple.getArch() == Triple::ppc64 ||
                TheTriple.getArch() == Triple::ppc64le);
     IsDarwin = TheTriple.isMacOSX();
+    ForceCPUSubTypeAll = STI.getCPU().equals("all"); 
     // Initialize the set of available features.
     setAvailableFeatures(ComputeAvailableFeatures(STI.getFeatureBits()));
   }
@@ -1888,23 +1891,53 @@ bool PPCAsmParser::ParseDirectiveMachine(SMLoc L) {
 bool PPCAsmParser::ParseDarwinDirectiveMachine(SMLoc L) {
   MCAsmParser &Parser = getParser();
   if (Parser.getTok().isNot(AsmToken::Identifier) &&
-      Parser.getTok().isNot(AsmToken::String))
+      Parser.getTok().isNot(AsmToken::String) &&
+      Parser.getTok().isNot(AsmToken::Integer))
     return Error(L, "unexpected token in directive");
 
-  StringRef CPU = Parser.getTok().getIdentifier();
+  
+  StringRef CPU;
+  if (Parser.getTok().is(AsmToken::Integer)) {
+    CPU = Parser.getTok().getString();
+  } else {
+    CPU = Parser.getTok().getIdentifier();
+  }
   Parser.Lex();
 
-  // FIXME: this is only the 'default' set of cpu variants.
-  // However we don't act on this information at present, this is simply
-  // allowing parsing to proceed with minimal sanity checking.
-  if (check(CPU != "ppc7400" && CPU != "ppc" && CPU != "ppc64", L,
-            "unrecognized cpu type") ||
-      check(isPPC64() && (CPU == "ppc7400" || CPU == "ppc"), L,
+  unsigned Mcpu = PPC::mcpuEnumFromString(CPU);
+  if(check(Mcpu == PPC::MCPU_BAD, L,  "unrecognised CPU specified"))
+    return addErrorSuffix(" in '.machine' directive");
+
+  if (ForceCPUSubTypeAll) {
+    parseToken(AsmToken::EndOfStatement);
+    return false; // Any valid CPU variant is ok.
+  }
+
+  // Although Darwin has used other PPC CPUs, these are the only ones
+  // supported at present.
+
+  bool OSX_OK = Mcpu == PPC::MCPU_32 || Mcpu == PPC::MCPU_64 ||
+                (Mcpu >= PPC::MCPU_601 && Mcpu <= PPC::MCPU_970);
+
+  // It might seem surprising that ppc970 is _not_ a valid ppc64 value (since
+  // it's a 64b-capable processor).  However, in this case the intent was to
+  // permit the use of 64b instructions between calls in otherwise 32b code
+  // (the kernel preserves the 64b state for exceptions and interrupts).
+
+  if (check(!OSX_OK, L, "unrecognized cpu type for") ||
+      check(isPPC64() && (Mcpu != PPC::MCPU_64), L,
             "wrong cpu type specified for 64bit") ||
-      check(!isPPC64() && CPU == "ppc64", L,
+      check(!isPPC64() && (Mcpu == PPC::MCPU_64), L,
             "wrong cpu type specified for 32bit") ||
       parseToken(AsmToken::EndOfStatement))
-    return addErrorSuffix(" in '.machine' directive");
+    return addErrorSuffix(" macOS X/Darwin in '.machine' directive");
+
+  PPCTargetStreamer &TStreamer =
+      *static_cast<PPCTargetStreamer *>(
+           getParser().getStreamer().getTargetStreamer());
+  // We convert the input (possibly legacy) string to the new one.
+  TStreamer.emitMachine(PPC::mcpuStringFromEnum(Mcpu));
+
   return false;
 }
 

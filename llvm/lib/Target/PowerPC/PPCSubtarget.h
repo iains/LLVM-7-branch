@@ -33,35 +33,6 @@
 namespace llvm {
 class StringRef;
 
-namespace PPC {
-  // -m directive values.
-  enum {
-    DIR_NONE,
-    DIR_32,
-    DIR_440,
-    DIR_601,
-    DIR_602,
-    DIR_603,
-    DIR_7400,
-    DIR_750,
-    DIR_970,
-    DIR_A2,
-    DIR_E500,
-    DIR_E500mc,
-    DIR_E5500,
-    DIR_PWR3,
-    DIR_PWR4,
-    DIR_PWR5,
-    DIR_PWR5X,
-    DIR_PWR6,
-    DIR_PWR6X,
-    DIR_PWR7,
-    DIR_PWR8,
-    DIR_PWR9,
-    DIR_64
-  };
-}
-
 class GlobalValue;
 class TargetMachine;
 
@@ -84,8 +55,9 @@ protected:
   /// Selected instruction itineraries (one entry per itinerary class.)
   InstrItineraryData InstrItins;
 
-  /// Which cpu directive was used.
-  unsigned DarwinDirective;
+  /// The "mcpu" that's in force (either set explicitly by -mcpu or by
+  /// a .machine xxxx directive).
+  unsigned Mcpu;
 
   /// Used by the ISel to turn in optimizations for POWER4-derived architectures
   bool HasMFOCRF;
@@ -166,10 +138,10 @@ public:
   /// function for this subtarget.
   unsigned getStackAlignment() const { return StackAlignment; }
 
-  /// getDarwinDirective - Returns the -m directive specified for the cpu.
-  ///
-  unsigned getDarwinDirective() const { return DarwinDirective; }
-
+  /// getMcpu - Returns the CPU variant in force, either from -mcpu or from a
+  /// .machine directive, where that is supported.
+  unsigned getMcpu() const { return Mcpu; }
+  
   /// getInstrItins - Return the instruction itineraries based on subtarget
   /// selection.
   const InstrItineraryData *getInstrItineraryData() const override {

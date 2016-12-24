@@ -26,6 +26,7 @@
 #include "PPCSubtarget.h"
 #include "PPCTargetMachine.h"
 #include "PPCTargetStreamer.h"
+#include "PPCMcpu.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Triple.h"
@@ -1503,56 +1504,39 @@ void PPCLinuxAsmPrinter::EmitFunctionBodyEnd() {
   }
 }
 
-void PPCDarwinAsmPrinter::EmitStartOfAsmFile(Module &M) {
-  static const char *const CPUDirectives[] = {
-    "",
-    "ppc",
-    "ppc440",
-    "ppc601",
-    "ppc602",
-    "ppc603",
-    "ppc7400",
-    "ppc750",
-    "ppc970",
-    "ppcA2",
-    "ppce500",
-    "ppce500mc",
-    "ppce5500",
-    "power3",
-    "power4",
-    "power5",
-    "power5x",
-    "power6",
-    "power6x",
-    "power7",
-    // FIXME: why is power8 missing here?
-    "ppc64",
-    "ppc64le",
-    "power9"
-  };
+/// EmitStartOfAsmFile - a custom version for Darwin that emits a .machine
+/// directive.
+/// Since we do not expect the cctools assembler to be able to parse the LLVM
+/// output, we will choose to emit the same machine directives as for ELF.
 
-  // Get the numerically largest directive.
-  // FIXME: How should we merge darwin directives?
-  unsigned Directive = PPC::DIR_NONE;
+void PPCDarwinAsmPrinter::EmitStartOfAsmFile(Module &M) {
+
+  // This is going to emit a .machine directive representative of the 'highest'
+  // specification of CPU we find attached to any function.
+
+  unsigned Mcpu = PPC::MCPU_NONE;
   for (const Function &F : M) {
     const PPCSubtarget &STI = TM.getSubtarget<PPCSubtarget>(F);
-    unsigned FDir = STI.getDarwinDirective();
-    Directive = Directive > FDir ? FDir : STI.getDarwinDirective();
-    if (STI.hasMFOCRF() && Directive < PPC::DIR_970)
-      Directive = PPC::DIR_970;
-    if (STI.hasAltivec() && Directive < PPC::DIR_7400)
-      Directive = PPC::DIR_7400;
-    if (STI.isPPC64() && Directive < PPC::DIR_64)
-      Directive = PPC::DIR_64;
+    unsigned FDir = STI.getMcpu();
+    Mcpu = Mcpu > FDir ? Mcpu : FDir;
+    if (STI.hasMFOCRF() && Mcpu < PPC::MCPU_970)
+      Mcpu = PPC::MCPU_970;
+    if (STI.hasAltivec() && Mcpu < PPC::MCPU_7400)
+      Mcpu = PPC::MCPU_7400;
+    if (STI.isPPC64() && Mcpu < PPC::MCPU_64)
+      Mcpu = PPC::MCPU_64;
   }
 
-  assert(Directive <= PPC::DIR_64 && "Directive out of range.");
-
-  assert(Directive < array_lengthof(CPUDirectives) &&
-         "CPUDirectives[] might not be up-to-date!");
   PPCTargetStreamer &TStreamer =
       *static_cast<PPCTargetStreamer *>(OutStreamer->getTargetStreamer());
-  TStreamer.emitMachine(CPUDirectives[Directive]);
+
+  if (Mcpu > PPC::MCPU_NONE) 
+    TStreamer.emitMachine(PPC::mcpuStringFromEnum(Mcpu));
+  else if (!TM.getTargetCPU().empty()) {
+    // We could have a module without functions, fall back to the Target CPU
+    // as determined from the command line.
+    TStreamer.emitMachine(TM.getTargetCPU());
+  } // else we have no info on the variant, so nothing to say.
 
   // Prime text sections so they are adjacent.  This reduces the likelihood a
   // large data or debug section causes a branch to exceed 16M limit.

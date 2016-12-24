@@ -15,6 +15,7 @@
 #include "PPC.h"
 #include "PPCInstrInfo.h"
 #include "PPCTargetMachine.h"
+#include "PPCMcpu.h"
 #include "llvm/CodeGen/ScheduleDAG.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/ErrorHandling.h"
@@ -159,12 +160,12 @@ unsigned PPCDispatchGroupSBHazardRecognizer::PreEmitNoops(SUnit *SU) {
   // only be a second branch, and otherwise the next instruction will start a
   // new group.
   if (isLoadAfterStore(SU) && CurSlots < 6) {
-    unsigned Directive =
-        DAG->MF.getSubtarget<PPCSubtarget>().getDarwinDirective();
+    unsigned Mcpu =
+        DAG->MF.getSubtarget<PPCSubtarget>().getMcpu();
     // If we're using a special group-terminating nop, then we need only one.
     // FIXME: the same for P9 as previous gen until POWER9 scheduling is ready
-    if (Directive == PPC::DIR_PWR6 || Directive == PPC::DIR_PWR7 ||
-        Directive == PPC::DIR_PWR8 || Directive == PPC::DIR_PWR9)
+    if (Mcpu == PPC::MCPU_PWR6 || Mcpu == PPC::MCPU_PWR7 ||
+        Mcpu == PPC::MCPU_PWR8 || Mcpu == PPC::MCPU_PWR9)
       return 1;
 
     return 5 - CurSlots;
@@ -221,12 +222,12 @@ void PPCDispatchGroupSBHazardRecognizer::Reset() {
 
 void PPCDispatchGroupSBHazardRecognizer::EmitNoop() {
   unsigned Directive =
-      DAG->MF.getSubtarget<PPCSubtarget>().getDarwinDirective();
+      DAG->MF.getSubtarget<PPCSubtarget>().getMcpu();
   // If the group has now filled all of its slots, or if we're using a special
   // group-terminating nop, the group is complete.
   // FIXME: the same for P9 as previous gen until POWER9 scheduling is ready
-  if (Directive == PPC::DIR_PWR6 || Directive == PPC::DIR_PWR7 ||
-      Directive == PPC::DIR_PWR8 || Directive == PPC::DIR_PWR9 ||
+  if (Directive == PPC::MCPU_PWR6 || Directive == PPC::MCPU_PWR7 ||
+      Directive == PPC::MCPU_PWR8 || Directive == PPC::MCPU_PWR9 ||
       CurSlots == 6) {
     CurGroup.clear();
     CurSlots = CurBranches = 0;
