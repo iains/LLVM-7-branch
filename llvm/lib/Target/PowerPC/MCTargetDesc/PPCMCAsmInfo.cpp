@@ -24,8 +24,12 @@ PPCMCAsmInfoDarwin::PPCMCAsmInfoDarwin(bool is64Bit, const Triple& T) {
   }
   IsLittleEndian = false;
 
-  SeparatorString = "@";
+  // Use the same comment and separator markers as cctools.
   CommentString = ";";
+  SeparatorString = "@";
+  // ... and PC.
+  DollarIsPC = true;
+
   ExceptionsType = ExceptionHandling::DwarfCFI;
 
   if (!is64Bit)
