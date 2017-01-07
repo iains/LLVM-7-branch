@@ -1628,6 +1628,7 @@ bool PPCAsmParser::ParseOperand(OperandVector &Operands) {
   case AsmToken::Dollar:
   case AsmToken::Exclaim:
   case AsmToken::Tilde:
+  case AsmToken::String:
     // Note that non-register-name identifiers from the compiler will begin
     // with '_', 'L'/'l' or '"'.  Of course, handwritten asm could include
     // identifiers like r31foo - so we fall through in the event that parsing
