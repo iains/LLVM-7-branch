@@ -204,13 +204,16 @@ class PPCTargetMachOStreamer : public PPCTargetStreamer {
 public:
   PPCTargetMachOStreamer(MCStreamer &S) : PPCTargetStreamer(S) {}
 
+  MCObjectStreamer &getStreamer() {
+    return static_cast<MCObjectStreamer &>(Streamer);
+  }
   void emitTCEntry(const MCSymbol &S) override {
     report_fatal_error("Unknown pseudo-op: .tc");
   }
 
   void emitMachine(StringRef CPU) override {
-    // FIXME: We should update the CPUType, CPUSubType in the Object file if
-    // the new values are different from the defaults.
+    MCAssembler &MCA = getStreamer().getAssembler();
+    MCA.setCPUSubType(PPC::cpuSubTypeFromString(CPU));
   }
 
   void emitAbiVersion(int AbiVersion) override {
