@@ -13,7 +13,9 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/raw_ostream.h"
-#include <CoreFoundation/CoreFoundation.h>
+//#include <CoreFoundation/CoreFoundation.h>
+#include <CoreFoundation/CFString.h>
+#include <CoreFoundation/CFBundle.h>
 #include <assert.h>
 #include <glob.h>
 #include <memory>
