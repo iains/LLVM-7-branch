@@ -6115,6 +6115,10 @@ def VGETLNi32 : NVGetLane<{1,1,1,0,0,0,?,1}, 0b1011, 0b00,
                 Requires<[HasVFP2, HasFastVGETLNi32]> {
   let Inst{21} = lane{0};
 }
+
+def: NEONInstAlias<"vmov${p} $R, $V, $lane",
+                   (VGETLNi32 GPR:$R, DPR:$V, VectorIndex32:$lane, pred:$p)>;
+
 // def VGETLNf32: see FMRDH and FMRDL in ARMInstrVFP.td
 def : Pat<(NEONvgetlanes (v16i8 QPR:$src), imm:$lane),
           (VGETLNs8 (v8i8 (EXTRACT_SUBREG QPR:$src,
