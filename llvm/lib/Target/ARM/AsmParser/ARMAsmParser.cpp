@@ -9475,10 +9475,17 @@ bool ARMAsmParser::parseDirectiveThumbFunc(SMLoc L) {
     }
   }
 
+  // For compatibility with GAS assembler, the .thumb_func implies
+  // '.thumb'.
   if (parseToken(AsmToken::EndOfStatement,
-                 "unexpected token in '.thumb_func' directive"))
+                 "unexpected token in '.thumb_func' directive") ||
+      check(!hasThumb(), L, "target does not support Thumb mode"))
     return true;
 
+  if (!isThumb())
+    SwitchMode();
+
+  getParser().getStreamer().EmitAssemblerFlag(MCAF_Code16);
   NextSymbolIsThumb = true;
   return false;
 }
