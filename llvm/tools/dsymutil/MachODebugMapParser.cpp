@@ -15,6 +15,8 @@
 #include "llvm/Support/Path.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/Format.h"
 
 namespace {
 using namespace llvm;
@@ -151,6 +153,7 @@ void MachODebugMapParser::switchToNewDebugMapObject(
 
   CurrentDebugMapObject =
       &Result->addDebugMapObject(Path, Timestamp, MachO::N_OSO);
+dbgs () << " loading symbols for : " + Path.str() + "\n";
   loadCurrentObjectFileSymbols(*Object);
 }
 
@@ -454,6 +457,7 @@ void MachODebugMapParser::loadCurrentObjectFileSymbols(
     uint64_t Addr = Sym.getValue();
     Expected<StringRef> Name = Sym.getName();
     if (!Name) {
+dbgs() << " <empty name>\n";
       // TODO: Actually report errors helpfully.
       consumeError(Name.takeError());
       continue;
@@ -466,10 +470,40 @@ void MachODebugMapParser::loadCurrentObjectFileSymbols(
     // relocations will use the symbol itself, and won't need an
     // object file address. The object file address field is optional
     // in the DebugMap, leave it unassigned for these symbols.
-    if (Sym.getFlags() & (SymbolRef::SF_Absolute | SymbolRef::SF_Common))
+    if (Sym.getFlags() & (SymbolRef::SF_Absolute | SymbolRef::SF_Common)) {
       CurrentObjectAddresses[*Name] = None;
-    else
+      continue;
+    } else
       CurrentObjectAddresses[*Name] = Addr;
+    Expected<SymbolRef::Type> TypeOrErr = Sym.getType();
+    if (!TypeOrErr) {
+dbgs() << " bade type?\n";
+      // TODO: Actually report errors helpfully.
+      consumeError(TypeOrErr.takeError());
+      continue;
+    }
+    SymbolRef::Type Type = *TypeOrErr;
+    if (Type == SymbolRef::ST_Debug || Type == SymbolRef::ST_Unknown)
+      continue;
+    uint8_t SymType =
+        Obj.getSymbolTableEntry(Sym.getRawDataRefImpl()).n_type;
+    if (!(SymType & (MachO::N_EXT | MachO::N_PEXT)))
+      continue;
+    Expected<section_iterator> SectionOrErr = Sym.getSection();
+    if (!SectionOrErr) {
+      // TODO: Actually report errors helpfully.
+      consumeError(SectionOrErr.takeError());
+      continue;
+    }
+    section_iterator Section = *SectionOrErr;
+    //if (!Section->isDebug()) how to do this?
+    //  continue;
+    StringRef SectName;
+    Section->getName(SectName);
+    if (SectName == "__debug_info") {
+dbgs() << *Name << " " << SectName << format(" 0x%llx\n", Addr);
+      CurrentDebugMapObject->addSymbol(*Name, Addr, 0, 0);
+    }
   }
 }
 

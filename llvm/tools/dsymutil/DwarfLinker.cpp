@@ -973,7 +973,12 @@ unsigned DwarfLinker::DIECloner::cloneDieReferenceAttribute(
   }
 
   if (!RefInfo.Clone) {
-    assert(Ref > InputDIE.getOffset());
+//    assert(Ref > InputDIE.getOffset());
+   if (Ref <= InputDIE.getOffset()) {
+dbgs() << format(" Ref : %u ID offst : %u ", Ref, InputDIE.getOffset());
+dbgs() << "inpdie: "; InputDIE.dump();
+dbgs() << "refdie: ";RefDie.dump();
+   }
     // We haven't cloned this DIE yet. Just create an empty one and
     // store it. It'll get really cloned when we process it.
     RefInfo.Clone = DIE::get(DIEAlloc, dwarf::Tag(RefDie.getTag()));
