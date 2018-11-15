@@ -19,6 +19,8 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ScopedPrinter.h"
 #include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/string_compat.h"
+#include <cstring>
 
 namespace llvm {
 
