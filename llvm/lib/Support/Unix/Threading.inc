@@ -108,7 +108,11 @@ static constexpr uint32_t get_max_thread_name_length_impl() {
 #if defined(__NetBSD__)
   return PTHREAD_MAX_NAMELEN_NP;
 #elif defined(__APPLE__)
+#if HAVE_PTHREAD_SETNAME_NP
   return 64;
+#else
+  return 0;
+#endif
 #elif defined(__linux__)
 #if HAVE_PTHREAD_SETNAME_NP
   return 16;
@@ -153,7 +157,7 @@ void llvm::set_thread_name(const Twine &Name) {
 #elif defined(__NetBSD__)
   ::pthread_setname_np(::pthread_self(), "%s",
     const_cast<char *>(NameStr.data()));
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && defined(HAVE_PTHREAD_SETNAME_NP)
   ::pthread_setname_np(NameStr.data());
 #endif
 }
