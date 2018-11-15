@@ -4,6 +4,8 @@
 #include "llvm/DebugInfo/DWARF/DWARFDebugLoc.h"
 #include "llvm/Object/ObjectFile.h"
 
+#include <cmath>
+
 #define DEBUG_TYPE "dwarfdump"
 using namespace llvm;
 using namespace object;
@@ -243,9 +245,9 @@ bool collectStatsForObjectFile(ObjectFile &Obj, DWARFContext &DICtx,
   OS << "}\n";
   LLVM_DEBUG(
       llvm::dbgs() << "Total Availability: "
-                   << (int)std::round((VarWithLoc * 100.0) / VarTotal) << "%\n";
+                   << (int) ::round((VarWithLoc * 100.0) / VarTotal) << "%\n";
       llvm::dbgs() << "PC Ranges covered: "
-                   << (int)std::round((GlobalStats.ScopeBytesCovered * 100.0) /
+                   << (int) ::round((GlobalStats.ScopeBytesCovered * 100.0) /
                                       GlobalStats.ScopeBytesFromFirstDefinition)
                    << "%\n");
   return true;
