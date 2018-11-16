@@ -153,8 +153,8 @@ if (LIBCXX_OSX_REEXPORT_SYSTEM_ABI_LIBRARY)
     add_link_flags(
       "-compatibility_version 1"
       "-current_version 1"
-      "-install_name /usr/lib/libc++.1.dylib"
-      "-Wl,-reexport_library,/usr/lib/libc++abi.dylib"
+      "-install_name @rpath/libc++.1.dylib"
+      "-Wl,-reexport_library,${LIBCXX_LIBRARY_DIR}/libc++abi.dylib"
       "-Wl,-unexported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/libc++unexp.exp"
       "/usr/lib/libSystem.B.dylib")
   else()
