@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "llvm/Support/Debug.h"
+#define DEBUG_TYPE "dsymutil"
 
 namespace llvm {
 
@@ -94,14 +95,14 @@ DebugMap::addDebugMapObject(StringRef ObjectFilePath,
 
 const DebugMapObject::DebugMapEntry *
 DebugMapObject::lookupSymbol(StringRef SymbolName) const {
-dbgs () << "looking for " << SymbolName;
+  LLVM_DEBUG(dbgs () << "looking for " << SymbolName);
   StringMap<SymbolMapping>::const_iterator Sym = Symbols.find(SymbolName);
   if (Sym == Symbols.end())
     {
-      dbgs () << " NO\n";
+      LLVM_DEBUG(dbgs () << " NO\n");
     return nullptr;
     }
-  dbgs () << " OK\n";
+  LLVM_DEBUG(dbgs () << " OK\n");
   return &*Sym;
 }
 

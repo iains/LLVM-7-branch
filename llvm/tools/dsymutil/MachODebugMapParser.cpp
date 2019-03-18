@@ -18,6 +18,8 @@
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/Format.h"
 
+#define DEBUG_TYPE "dsymutil"
+
 namespace {
 using namespace llvm;
 using namespace llvm::dsymutil;
@@ -153,7 +155,7 @@ void MachODebugMapParser::switchToNewDebugMapObject(
 
   CurrentDebugMapObject =
       &Result->addDebugMapObject(Path, Timestamp, MachO::N_OSO);
-dbgs () << " loading symbols for : " + Path.str() + "\n";
+  LLVM_DEBUG(dbgs () << " loading symbols for : " + Path.str() + "\n");
   loadCurrentObjectFileSymbols(*Object);
 }
 
@@ -457,7 +459,7 @@ void MachODebugMapParser::loadCurrentObjectFileSymbols(
     uint64_t Addr = Sym.getValue();
     Expected<StringRef> Name = Sym.getName();
     if (!Name) {
-dbgs() << " <empty name>\n";
+      LLVM_DEBUG(dbgs() << " <empty name>\n");
       // TODO: Actually report errors helpfully.
       consumeError(Name.takeError());
       continue;
@@ -477,7 +479,7 @@ dbgs() << " <empty name>\n";
       CurrentObjectAddresses[*Name] = Addr;
     Expected<SymbolRef::Type> TypeOrErr = Sym.getType();
     if (!TypeOrErr) {
-dbgs() << " bade type?\n";
+      LLVM_DEBUG(dbgs() << " bad type?\n");
       // TODO: Actually report errors helpfully.
       consumeError(TypeOrErr.takeError());
       continue;
@@ -501,7 +503,7 @@ dbgs() << " bade type?\n";
     StringRef SectName;
     Section->getName(SectName);
     if (SectName == "__debug_info") {
-dbgs() << *Name << " " << SectName << format(" 0x%llx\n", Addr);
+      LLVM_DEBUG(dbgs() << *Name << " " << SectName << format(" 0x%llx\n", Addr));
       CurrentDebugMapObject->addSymbol(*Name, Addr, 0, 0);
     }
   }
