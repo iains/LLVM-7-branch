@@ -499,8 +499,8 @@ LLVM_DEBUG(dbgs() << TheTarget->getName() << " triple named " \
     Ctx.setAllowTemporaryLabels(false);
 
   Ctx.setGenDwarfForAssembly(GenDwarfForAssembly);
-  // Default to 4 for dwarf version.
-  unsigned DwarfVersion = MCOptions.DwarfVersion ? MCOptions.DwarfVersion : 4;
+  // Default to 2 for dwarf version.
+  unsigned DwarfVersion = MCOptions.DwarfVersion ? MCOptions.DwarfVersion : 2;
   if (DwarfVersion < 2 || DwarfVersion > 4) {
     errs() << ProgName << ": Dwarf version " << DwarfVersion
            << " is not supported." << '\n';
