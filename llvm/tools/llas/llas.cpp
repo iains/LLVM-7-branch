@@ -59,6 +59,7 @@ OutputFilename("o", desc("Output filename"),
 static opt<bool>
 ShowEncoding("show-encoding", desc("Show instruction encodings"), Hidden);
 
+#if 0
 static opt<DebugCompressionType> CompressDebugSections(
     "compress-debug-sections", ValueOptional,
     init(DebugCompressionType::None),
@@ -68,6 +69,7 @@ static opt<DebugCompressionType> CompressDebugSections(
                           "Use zlib compression"),
                clEnumValN(DebugCompressionType::GNU, "zlib-gnu",
                           "Use zlib-gnu compression (deprecated)")));
+#endif
 
 static opt<bool>
 ShowInst("show-inst", desc("Show internal instruction representation"), Hidden);
@@ -479,6 +481,7 @@ LLVM_DEBUG(dbgs() << TheTarget->getName() << " triple named " \
   std::unique_ptr<MCAsmInfo> MAI(TheTarget->createMCAsmInfo(*MRI, TripleName));
   assert(MAI && "Unable to create target asm info!");
 
+#if 0
   if (CompressDebugSections != DebugCompressionType::None) {
     if (!zlib::isAvailable()) {
       errs() << ProgName
@@ -487,13 +490,15 @@ LLVM_DEBUG(dbgs() << TheTarget->getName() << " triple named " \
     }
     MAI->setCompressDebugSections(CompressDebugSections);
   }
+#endif
 
   // FIXME: This is not pretty. MCContext has a ptr to MCObjectFileInfo and
   // MCObjectFileInfo needs a MCContext reference in order to initialize itself.
   MCObjectFileInfo MOFI;
   MCContext Ctx(MAI.get(), MRI.get(), &MOFI, &SrcMgr);
   bool PIC = RelocMode == RS_Static ? false : true;
-  MOFI.InitMCObjectFileInfo(TheTriple, PIC, Ctx, LargeCodeModel, !NoCompactUnwind);
+  MOFI.InitMCObjectFileInfo(TheTriple, PIC, Ctx, LargeCodeModel,
+			    /*!NoCompactUnwind*/ false);
 
   if (SaveTempLabels)
     Ctx.setAllowTemporaryLabels(false);
