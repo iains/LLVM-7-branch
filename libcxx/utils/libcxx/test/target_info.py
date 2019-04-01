@@ -140,7 +140,7 @@ class DarwinLocalTI(DefaultTargetInfo):
             flags += ["-isysroot", sdk_path]
 
     def add_cxx_link_flags(self, flags):
-        flags += ['-lSystem']
+        flags += [ '-latomic', '-lgcc_s.10.5', '-lSystem']
 
     def configure_env(self, env):
         library_paths = []

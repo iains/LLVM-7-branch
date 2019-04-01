@@ -148,7 +148,16 @@ if (LIBCXX_OSX_REEXPORT_SYSTEM_ABI_LIBRARY)
     endif()
   endif()
 
-  if ( CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "10.6" )
+  if ( CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "10.5" )
+    add_link_flags(
+      "-compatibility_version 1"
+      "-current_version 1"
+      "-install_name @rpath/libc++.1.dylib"
+      "-Wl,-reexport_library,${LIBCXX_LIBRARY_DIR}/libc++abi.dylib"
+      "-Wl,-unexported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/libc++unexp.exp"
+      "/usr/lib/libgcc_s.10.5.dylib"
+      "/usr/lib/libSystem.B.dylib")
+  elseif ( CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "10.6" )
     add_definitions(-D__STRICT_ANSI__)
     add_link_flags(
       "-compatibility_version 1"
@@ -158,7 +167,7 @@ if (LIBCXX_OSX_REEXPORT_SYSTEM_ABI_LIBRARY)
       "-Wl,-unexported_symbols_list,${CMAKE_CURRENT_SOURCE_DIR}/libc++unexp.exp"
       "/usr/lib/libSystem.B.dylib")
   else()
-	  if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
+    if (DEFINED CMAKE_OSX_SYSROOT AND NOT CMAKE_OSX_SYSROOT STREQUAL "")
       list(FIND CMAKE_OSX_ARCHITECTURES "armv7" OSX_HAS_ARMV7)
       if (NOT OSX_HAS_ARMV7 EQUAL -1)
         set(OSX_RE_EXPORT_LINE
