@@ -89,18 +89,26 @@ add_link_flags_if_supported(-nodefaultlibs)
 set(LIBCXXABI_SHARED_LINK_FLAGS)
 
 if ( APPLE )
-  if ( CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "10.6" )
+  if ( CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "10.5" )
+    list(APPEND LIBCXXABI_SHARED_LINK_FLAGS
+      "-compatibility_version 1"
+      "-current_version 1"
+      "-install_name @rpath/libc++abi.1.dylib")
+    list(APPEND LIBCXXABI_LINK_FLAGS
+        "/usr/lib/libgcc_s.10.5.dylib"
+        "/usr/lib/libSystem.B.dylib")
+  elseif ( CMAKE_OSX_DEPLOYMENT_TARGET STREQUAL "10.6" )
     list(APPEND LIBCXXABI_COMPILE_FLAGS "-U__STRICT_ANSI__")
     list(APPEND LIBCXXABI_SHARED_LINK_FLAGS
       "-compatibility_version 1"
       "-current_version 1"
-      "-install_name /usr/lib/libc++abi.1.dylib")
+      "-install_name @rpath/libc++abi.1.dylib")
     list(APPEND LIBCXXABI_LINK_FLAGS
         "/usr/lib/libSystem.B.dylib")
   else()
     list(APPEND LIBCXXABI_SHARED_LINK_FLAGS
       "-compatibility_version 1"
-      "-install_name /usr/lib/libc++abi.1.dylib")
+      "-install_name @rpath/libc++abi.1.dylib")
   endif()
 endif()
 
