@@ -25,6 +25,8 @@
 // UNSUPPORTED: macosx10.9
 // UNSUPPORTED: macosx10.8
 // UNSUPPORTED: macosx10.7
+// UNSUPPORTED: macosx10.6
+// UNSUPPORTED: macosx10.5
 
 // asan and msan will not call the new handler.
 // UNSUPPORTED: sanitizer-new-delete

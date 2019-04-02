@@ -28,6 +28,8 @@
 // UNSUPPORTED: macosx10.9
 // UNSUPPORTED: macosx10.8
 // UNSUPPORTED: macosx10.7
+// UNSUPPORTED: macosx10.6
+// UNSUPPORTED: macosx10.5
 
 // XFAIL: no-aligned-allocation && !gcc
 

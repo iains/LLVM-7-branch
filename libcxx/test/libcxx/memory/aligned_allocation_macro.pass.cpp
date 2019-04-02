@@ -16,6 +16,8 @@
 // XFAIL: macosx10.9
 // XFAIL: macosx10.8
 // XFAIL: macosx10.7
+// XFAIL: macosx10.6
+// XFAIL: macosx10.5
 
 #include <new>
 
