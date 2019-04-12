@@ -318,6 +318,9 @@ std::string tools::getCPUName(const ArgList &Args, const llvm::Triple &T,
         TargetCPUName = "ppc64";
       else if (T.getArch() == llvm::Triple::ppc64le && !T.isOSDarwin())
         TargetCPUName = "ppc64le";
+      else if (T.isOSDarwin() && !T.isMacOSXVersionLT(10,5))
+        // For 10.5+ Altivec is assumed available.
+        TargetCPUName = "7400";
       else
         TargetCPUName = "ppc";
     }
