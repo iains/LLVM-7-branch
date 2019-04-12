@@ -4134,15 +4134,18 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
                                      options::OPT_mlong_double_64);
 
   if (getToolChain().getTriple().isOSDarwin() &&
-      getToolChain().getArch() == llvm::Triple::ppc) {
-    // The default is power alignment.
-    if (! alignOptArg
-        || alignOptArg->getOption().matches(options::OPT_malign_power)) {
+      (getToolChain().getArch() == llvm::Triple::ppc ||
+       getToolChain().getArch() == llvm::Triple::ppc64)) {
+    if ((! alignOptArg && getToolChain().getArch() == llvm::Triple::ppc) ||
+        (alignOptArg && alignOptArg->getOption().matches(options::OPT_malign_power))) {
+      // The default is power alignment for ppc...
       CmdArgs.push_back("-malign-power");
     } else
-      if (alignOptArg->getOption().matches(options::OPT_malign_natural)) {
+      if ((! alignOptArg && getToolChain().getArch() == llvm::Triple::ppc64) ||
+          (  alignOptArg && alignOptArg->getOption().matches(options::OPT_malign_natural))) {
+      // ... and natural for ppc64.
       CmdArgs.push_back("-malign-natural");
-    } else {
+    } else { // Must be that 68k was specified.
       CmdArgs.push_back("-malign-mac68k");
     }
     //CmdArgs.push_back("-backend-option");
@@ -4157,8 +4160,8 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
       CmdArgs.push_back("-mone-byte-bool");
   } else {
     if (alignOptArg)
-    // FIXME: Decide if we want to accept the mac68k mode for i386-darwin.
-    D.Diag(diag::err_drv_argument_only_allowed_with)
+      // FIXME: Decide if we want to accept the mac68k mode for i386-darwin.
+      D.Diag(diag::err_drv_argument_only_allowed_with)
            << alignOptArg->getAsString(Args) << "OSX ppc";
     if (mldblOptArg)
       D.Diag(diag::err_drv_argument_only_allowed_with)
