@@ -1174,8 +1174,14 @@ void DarwinClang::AddLinkRuntimeLibArgs(const ArgList &Args,
     // the OS X builtins library.
     if (isMacosxVersionLT(10, 5))
       AddLinkRuntimeLib(Args, CmdArgs, "libclang_rt.10.4.a");
-    else
-      AddLinkRuntimeLib(Args, CmdArgs, "libclang_rt.osx.a");
+    else {
+      // We also distinguish runtimes for <= 10.6, since those contain slices
+      // for ppc (and, maybe one day, ppc64).
+      if (isMacosxVersionLT(10, 7))
+        AddLinkRuntimeLib(Args, CmdArgs, "libclang_rt.10.5.a");
+      else
+        AddLinkRuntimeLib(Args, CmdArgs, "libclang_rt.osx.a");
+    }
   }
 }
 
