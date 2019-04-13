@@ -14,12 +14,17 @@
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
+#include "clang/AST/DeclTemplate.h"
 #include "clang/AST/Expr.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Sema/SemaDiagnostic.h"
 #include "llvm/ADT/SmallSet.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/MathExtras.h"
+
+#include "llvm/Support/raw_os_ostream.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/Format.h"
 
 using namespace clang;
 
@@ -602,7 +607,11 @@ protected:
 
   unsigned IsMac68kAlign : 1;
 
+  unsigned IsOSXPowerAlign : 1;
+
   unsigned IsMsStruct : 1;
+
+  unsigned IsFirstField : 1;
 
   /// UnfilledBitsInLastUnit - If the last field laid out was a bitfield,
   /// this contains the number of bits in the last unit that can be used for
@@ -667,7 +676,8 @@ protected:
         Alignment(CharUnits::One()), UnpackedAlignment(CharUnits::One()),
         UnadjustedAlignment(CharUnits::One()),
         UseExternalLayout(false), InferAlignment(false), Packed(false),
-        IsUnion(false), IsMac68kAlign(false), IsMsStruct(false),
+        IsUnion(false), IsMac68kAlign(false), IsOSXPowerAlign(false), 
+        IsMsStruct(false), IsFirstField(true),
         UnfilledBitsInLastUnit(0), LastBitfieldTypeSize(0),
         MaxFieldAlignment(CharUnits::Zero()), DataSize(0),
         NonVirtualSize(CharUnits::Zero()),
@@ -680,6 +690,7 @@ protected:
   void Layout(const ObjCInterfaceDecl *D);
 
   void LayoutFields(const RecordDecl *D);
+  unsigned getBiggestAlign(const /*FieldDecl *D*/QualType T, unsigned current);
   void LayoutField(const FieldDecl *D, bool InsertExtraPadding);
   void LayoutWideBitField(uint64_t FieldSize, uint64_t TypeSize,
                           bool FieldPacked, const FieldDecl *D);
@@ -1252,12 +1263,22 @@ void ItaniumRecordLayoutBuilder::InitializeLayout(const Decl *D) {
     MaxFieldAlignment = CharUnits::fromQuantity(DefaultMaxFieldAlignment);
   }
 
+  // Note if we use the special power alignment rules (mac68k is dealt with
+  // below).  "Natural" may be explicitly specified, but is just the default
+  // in the absence of any other stated requirement.
+  if (Context.getLangOpts().OSXPowerAlign && !IsMsStruct) {
+    // Some items have different alignments depending on where they appear
+    // in an aggregate.  Yeah, history is fun to deal with.
+    IsOSXPowerAlign = true;
+  }
+
   // mac68k alignment supersedes maximum field alignment and attribute aligned,
   // and forces all structures to have 2-byte alignment. The IBM docs on it
   // allude to additional (more complicated) semantics, especially with regard
   // to bit-fields, but gcc appears not to follow that.
-  if (D->hasAttr<AlignMac68kAttr>()) {
+  if (Context.getLangOpts().Mac68kAlign || D->hasAttr<AlignMac68kAttr>()) {
     IsMac68kAlign = true;
+    IsOSXPowerAlign = false;
     MaxFieldAlignment = CharUnits::fromQuantity(2);
     Alignment = CharUnits::fromQuantity(2);
   } else {
@@ -1302,6 +1323,7 @@ void ItaniumRecordLayoutBuilder::Layout(const CXXRecordDecl *RD) {
   // Lay out the vtable and the non-virtual bases.
   LayoutNonVirtualBases(RD);
 
+  IsFirstField = false;
   LayoutFields(RD);
 
   NonVirtualSize = Context.toCharUnitsFromBits(
@@ -1345,6 +1367,8 @@ void ItaniumRecordLayoutBuilder::Layout(const ObjCInterfaceDecl *D) {
     // structure, but at the next byte following the last field.
     setSize(SL.getDataSize());
     setDataSize(getSize());
+
+    IsFirstField = false;
   }
 
   InitializeLayout(D);
@@ -1717,6 +1741,74 @@ void ItaniumRecordLayoutBuilder::LayoutBitField(const FieldDecl *D) {
                   Context.toCharUnitsFromBits(UnpackedFieldAlign));
 }
 
+// Helper for LayoutField (OSX power alignment rules).
+// Looks through aggregate fields recursively, checking for forced increase
+// in alignment.
+unsigned ItaniumRecordLayoutBuilder::getBiggestAlign(/*const FieldDecl *D*/ const QualType FieldType,
+                                              unsigned current) {
+//  QualType FieldType = D->getType();
+  const Type *Fp = FieldType.getTypePtr();
+  if (const CXXRecordDecl *Cxr = Fp->getAsCXXRecordDecl()) {
+bool pod = Cxr->isPOD();
+bool clike = Cxr->isCLike();
+const RecordType *Cr = Fp->getAsStructureType();
+if (pod || clike) {
+//llvm::dbgs() << (pod ? "isPOD " : "not POD ") << (clike ? " is CLike\n" : "not clike\n");
+if (Cr) {
+//Cr->dump();
+}
+//Cxr->dump();
+}
+//    if (isa<ClassTemplateSpecializationDecl>(Cxr)) {
+//      const ClassTemplateSpecializationDecl *Spec =
+//        cast<ClassTemplateSpecializationDecl>(Cxr);
+//      ClassTemplateDecl *ctd = Spec->getSpecializedTemplate();
+//Spec->dump();
+      //Cxr = ctd->getTemplatedDecl();
+//ctd->dump();
+      // Punt on delving any further, just use the alignment here.
+      //unsigned al = Context.getTypeAlign(FieldType);
+      //current = al > current ? al : current;
+      //return current;
+//    }
+    if (Cxr->hasAttr<AlignedAttr>()) {
+      current = Cxr->getMaxAlignment() > current
+              ? Cxr->getMaxAlignment() : current;
+    }
+    for (CXXRecordDecl::field_iterator I = Cxr->field_begin(),
+         E = Cxr->field_end(); I != E; ++I) {
+      const FieldDecl &Fd = **I;
+      if (Fd.hasAttr<AlignedAttr>()) {
+        current = Fd.getMaxAlignment() > current
+                ? Fd.getMaxAlignment() : current;
+      }
+      // check lower if it's an aggregate.
+      if (Fd.getType().getTypePtr()->isAggregateType()) {
+        current = getBiggestAlign(Fd.getType(), current);
+      }
+    }
+  } if (const RecordType *Cr = Fp->getAsStructureType()) {
+    RecordDecl *Crd = Cr->getDecl();
+    if (Crd->hasAttr<AlignedAttr>()) {
+      current = Crd->getMaxAlignment() > current
+              ? Crd->getMaxAlignment() : current;
+    }
+    for (RecordDecl::field_iterator I = Crd->field_begin(),
+         E = Crd->field_end(); I != E; ++I) {
+      const FieldDecl &Fd = **I;
+      if (Fd.hasAttr<AlignedAttr>()) {
+         current = Fd.getMaxAlignment() > current
+                 ? Fd.getMaxAlignment() : current;
+      }
+      // check lower if it's an aggregate.
+      if (Fd.getType().getTypePtr()->isAggregateType()) {
+        current = getBiggestAlign(Fd.getType(), current);
+      }
+    }
+  } // else presumably a union.
+  return current;
+}
+
 void ItaniumRecordLayoutBuilder::LayoutField(const FieldDecl *D,
                                              bool InsertExtraPadding) {
   if (D->isBitField()) {
@@ -1730,21 +1822,37 @@ void ItaniumRecordLayoutBuilder::LayoutField(const FieldDecl *D,
   UnfilledBitsInLastUnit = 0;
   LastBitfieldTypeSize = 0;
 
-  bool FieldPacked = Packed || D->hasAttr<PackedAttr>();
+  bool FieldAlignAttr = D->hasAttr<AlignedAttr>();
+
+  // For OSX Power align, the alignment used depends on whether we are laying
+  // out the first field.  We can't use FieldIndex alone, since that doesn't
+  // account cxx entities, and we can't use size == 0 (there could be a 0-size
+  // element as the first entry).
+  //bool FirstField = /*D->getFieldIndex() == 0 &&*/ getSizeInBits() == 0;
+  bool FirstField = IsFirstField;
+  IsFirstField = false;
+
+  // For OSX Power align, packed attributes are ignored on fields in unions,
+  // and on the first field in structures (unless the whole struct is packed).
+  bool FieldPacked = Packed || (D->hasAttr<PackedAttr>() && (!IsOSXPowerAlign ||
+                               (IsOSXPowerAlign && !(IsUnion || FirstField))));
+
   CharUnits FieldOffset =
     IsUnion ? CharUnits::Zero() : getDataSize();
   CharUnits FieldSize;
   CharUnits FieldAlign;
 
-  if (D->getType()->isIncompleteArrayType()) {
+  QualType FieldType = D->getType();
+
+  if (FieldType->isIncompleteArrayType()) {
     // This is a flexible array member; we can't directly
     // query getTypeInfo about these, so we figure it out here.
     // Flexible array members don't have any size, but they
     // have to be aligned appropriately for their element type.
     FieldSize = CharUnits::Zero();
-    const ArrayType* ATy = Context.getAsArrayType(D->getType());
+    const ArrayType* ATy = Context.getAsArrayType(FieldType);
     FieldAlign = Context.getTypeAlignInChars(ATy->getElementType());
-  } else if (const ReferenceType *RT = D->getType()->getAs<ReferenceType>()) {
+  } else if (const ReferenceType *RT = FieldType->getAs<ReferenceType>()) {
     unsigned AS = Context.getTargetAddressSpace(RT->getPointeeType());
     FieldSize =
       Context.toCharUnitsFromBits(Context.getTargetInfo().getPointerWidth(AS));
@@ -1752,7 +1860,7 @@ void ItaniumRecordLayoutBuilder::LayoutField(const FieldDecl *D,
       Context.toCharUnitsFromBits(Context.getTargetInfo().getPointerAlign(AS));
   } else {
     std::pair<CharUnits, CharUnits> FieldInfo =
-      Context.getTypeInfoInChars(D->getType());
+      Context.getTypeInfoInChars(FieldType);
     FieldSize = FieldInfo.first;
     FieldAlign = FieldInfo.second;
 
@@ -1762,7 +1870,7 @@ void ItaniumRecordLayoutBuilder::LayoutField(const FieldDecl *D,
 
       // Resolve all typedefs down to their base type and round up the field
       // alignment if necessary.
-      QualType T = Context.getBaseElementType(D->getType());
+      QualType T = Context.getBaseElementType(FieldType);
       if (const BuiltinType *BTy = T->getAs<BuiltinType>()) {
         CharUnits TypeSize = Context.getTypeSizeInChars(BTy);
 
@@ -1796,6 +1904,50 @@ void ItaniumRecordLayoutBuilder::LayoutField(const FieldDecl *D,
           FieldAlign = TypeSize;
       }
     }
+  }
+
+//  assert ((!FirstField || (getSizeInBits() == 0)) && "hmm. first field not at offset 0 ?");
+//D->dump();
+//  QualType UnderLyingType = FieldType->getCanonicalTypeInternal();
+//  if (FieldType->isConstantArrayType()) {
+//    const ArrayType* ATy = Context.getAsArrayType(FieldType);
+//    UnderLyingType = ATy->getElementType();
+//  } else 
+//  if (FieldType->isEnumeralType()) {
+//    UnderLyingType = FieldType->getCanonicalTypeInternal();
+//  } else
+//    UnderLyingType = FieldType;
+
+
+  if (IsOSXPowerAlign) {
+    // This should DTRT for everything except constant arrays (it doesn't preserve
+    // the force info from the element, and records - it only notices any forced
+    // alignment at the outer structure layer).
+    TypeInfo FTI = Context.getTypeInfo(FieldType);
+//llvm::dbgs() << llvm::format("Field: %2d W %2u A %2u F %d type:", D->getFieldIndex(), (unsigned) FTI.Width, (unsigned) FTI.Align, (int)FTI.AlignIsRequired); FieldType->dump();
+//  TypeInfo UTI = Context.getTypeInfo(UnderLyingType);
+//llvm::dbgs() << llvm::format("          W %2u A %2u F %d type:", (unsigned) UTI.Width, (unsigned) UTI.Align, (int)UTI.AlignIsRequired); UnderLyingType->dump();
+    unsigned AlignBits = FTI.Align; //std::max(FTI.Align, UTI.Align);
+    bool IsForced = FTI.AlignIsRequired; // || UTI.AlignIsRequired;
+    if (!IsUnion && !FirstField && AlignBits < 128 &&
+        !IsForced && !FieldPacked) {
+      // Default to 4 bytes until we find a reason to increase it.
+      unsigned BiggestAlign = 32; // in bits.
+
+      // Has the field got an attribute?, this trumps power align on increases.
+      if (FieldAlignAttr)
+        BiggestAlign = std::max(BiggestAlign, D->getMaxAlignment());
+
+        // Do we have something that needs more inspection?
+        const Type *Fp = FieldType.getTypePtr();
+        if (Fp->isAggregateType() || Fp->isStructureOrClassType()) {
+          // Look at the contained fields
+          BiggestAlign = getBiggestAlign(FieldType, BiggestAlign);
+        }
+      AlignBits = std::min(BiggestAlign, AlignBits);
+    }
+    FieldSize  = Context.toCharUnitsFromBits(FTI.Width);
+    FieldAlign = Context.toCharUnitsFromBits(AlignBits);
   }
 
   // The align if the field is not packed. This is to check if the attribute
