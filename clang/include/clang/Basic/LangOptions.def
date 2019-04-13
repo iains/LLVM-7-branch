@@ -169,6 +169,9 @@ VALUE_LANGOPT(PackStruct  , 32, 0,
 VALUE_LANGOPT(MaxTypeAlign  , 32, 0,
               "default maximum alignment for types")
 VALUE_LANGOPT(AlignDouble            , 1, 0, "Controls if doubles should be aligned to 8 bytes (x86 only)")
+LANGOPT(OSXPowerAlign     , 1, 0, "Structure layout follows OSX Power alignment")
+LANGOPT(OSXNaturalAlign   , 1, 0, "Structure layout follows Natural alignment")
+LANGOPT(Mac68kAlign       , 1, 0, "Structure layout follows Mac 68k alignment")
 COMPATIBLE_VALUE_LANGOPT(PICLevel    , 2, 0, "__PIC__ level")
 COMPATIBLE_VALUE_LANGOPT(PIE         , 1, 0, "is pie")
 COMPATIBLE_LANGOPT(GNUInline         , 1, 0, "GNU inline semantics")
