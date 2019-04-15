@@ -1,7 +1,9 @@
 // RUN: %clang_cc1  -triple powerpc-apple-macosx10.5 -emit-llvm %s -malign-power -disable-llvm-optzns -fno-common -o - | \
-// RUN: FileCheck %s  --check-prefix=CHECK-C --check-prefix=CHECK-P
+// RUN: FileCheck %s  --check-prefix=CHECK-C --check-prefix=CHECK-32 --check-prefix=CHECK-P
 // RUN: %clang_cc1  -triple powerpc-apple-macosx10.5 -emit-llvm %s -malign-natural -disable-llvm-optzns -fno-common -o - | \
-// RUN: FileCheck %s  --check-prefix=CHECK-C --check-prefix=CHECK-N
+// RUN: FileCheck %s  --check-prefix=CHECK-C --check-prefix=CHECK-32 --check-prefix=CHECK-N
+// RUN: %clang_cc1  -triple powerpc64-apple-macosx10.5 -emit-llvm %s -disable-llvm-optzns -fno-common -o - | \
+// RUN: FileCheck %s  --check-prefix=CHECK-C --check-prefix=CHECK-64 --check-prefix=CHECK-N
 
 #define TT  double
 #define TT_EL double
@@ -10,14 +12,16 @@
 
 // CHECK-C: %struct._Ts = type { double }
 // CHECK-C: %union._Tu = type { double }
-// CHECK-C: %struct._Tcs = type { double, i8, [7 x i8] }
+// CHECK-32: %struct._Tcs = type { double, i8, [7 x i8] }
+// CHECK-64: %struct._Tcs = type { double, i8 }
 // CHECK-C: %struct._Tzs = type { double, [2 x %struct.anon] }
 // CHECK-C: %struct.anon = type {}
-// CHECK-C: %struct._TAcs = type { double, i8, [7 x i8] }
+// CHECK-32: %struct._TAcs = type { double, i8, [7 x i8] }
+// CHECK-64: %struct._TAcs = type { double, i8  }
 // CHECK-P: %struct._cTs = type { i8, double }
-// CHECK-N: %struct._cTs = type { i8, [7 x i8], double }
+// CHECK-N: %struct._cTs = type { i8{{.*}}, double }
 // CHECK-P: %struct._cSTs = type { i8, %struct._Ts }
-// CHECK-N: %struct._cSTs = type { i8, [7 x i8], %struct._Ts }
+// CHECK-N: %struct._cSTs = type { i8{{.*}}, %struct._Ts }
 // CHECK-C: %struct._sta5 = type { [5 x double] }
 // CHECK-C: %struct._stp = type { double }
 // CHECK-C: %struct._sctp = type <{ i8, double }>
@@ -31,26 +35,31 @@
 // CHECK-C: @gA_size = global i32 40
 // CHECK-C: @gA_align = global i32 8
 // CHECK-C: @gA = global [5 x double] zeroinitializer, align 8
-// CHECK-C: @a0 = global double* getelementptr inbounds ([5 x double], [5 x double]* @gA, i32 0, i32 0), align 4
-// CHECK-C: @a2 = global double* bitcast (i8* getelementptr (i8, i8* bitcast ([5 x double]* @gA to i8*), i64 16) to double*), align 4
+// CHECK-32: @a0 = global double* getelementptr inbounds ([5 x double], [5 x double]* @gA, i32 0, i32 0), align 4
+// CHECK-32: @a2 = global double* bitcast (i8* getelementptr (i8, i8* bitcast ([5 x double]* @gA to i8*), i64 16) to double*), align 4
+// CHECK-64: @a0 = global double* getelementptr inbounds ([5 x double], [5 x double]* @gA, i32 0, i32 0), align 8
+// CHECK-64: @a2 = global double* bitcast (i8* getelementptr (i8, i8* bitcast ([5 x double]* @gA to i8*), i64 16) to double*), align 8
 
 // CHECK-C: @ST_t_size = global i32 8
 // CHECK-C: @ST_t_align = global i32 8
 // CHECK-C: @g_ST_t_size = global i32 8
 // CHECK-C: @g_ST_t_align = global i32 8
-// CHECK-C: @g_ST_t_align_t = global i32 4
+// CHECK-32: @g_ST_t_align_t = global i32 4
+// CHECK-64: @g_ST_t_align_t = global i32 8
 // CHECK-C: @ST_t_offs_b = global i32 0
 // CHECK-C: @UT_t_size = global i32 8
 // CHECK-C: @UT_t_align = global i32 8
 // CHECK-C: @g_UT_t_size = global i32 8
 // CHECK-C: @g_UT_t_align = global i32 8
-// CHECK-C: @g_UT_t_align_t = global i32 4
+// CHECK-32: @g_UT_t_align_t = global i32 4
+// CHECK-64: @g_UT_t_align_t = global i32 8
 // CHECK-C: @UT_t_offs_t = global i32 0
 // CHECK-C: @Sbc_t_size = global i32 16
 // CHECK-C: @Sbc_t_align = global i32 8
 // CHECK-C: @g_STc_t_size = global i32 16
 // CHECK-C: @g_STc_t_align = global i32 8
-// CHECK-C: @g_STc_t_align_t = global i32 4
+// CHECK-32: @g_STc_t_align_t = global i32 4
+// CHECK-64: @g_STc_t_align_t = global i32 8
 // CHECK-C: @g_STc_t_align_c = global i32 1
 // CHECK-C: @STc_t_off_t = global i32 0
 // CHECK-C: @STc_t_off_c = global i32 8
@@ -58,7 +67,8 @@
 // CHECK-C: @STz_t_align = global i32 8
 // CHECK-C: @g_STz_t_size = global i32 8
 // CHECK-C: @g_STz_t_align = global i32 8
-// CHECK-C: @g_STz_t_align_t = global i32 4
+// CHECK-32: @g_STz_t_align_t = global i32 4
+// CHECK-64: @g_STz_t_align_t = global i32 8
 // CHECK-C: @g_STz_t_align_z = global i32 1
 // CHECK-C: @STz_t_off_t = global i32 0
 // CHECK-C: @STz_t_off_z = global i32 8
@@ -78,7 +88,8 @@
 // CHECK-P: @g_ScT_t_align = global i32 4
 // CHECK-N: @g_ScT_t_size = global i32 16
 // CHECK-N: @g_ScT_t_align = global i32 8
-// CHECK-C: @g_ScT_t_align_t = global i32 4
+// CHECK-32: @g_ScT_t_align_t = global i32 4
+// CHECK-64: @g_ScT_t_align_t = global i32 8
 // CHECK-C: @g_ScT_t_align_c = global i32 1
 // CHECK-P: @ScT_t_off_b = global i32 4
 // CHECK-N: @ScT_t_off_b = global i32 8
@@ -101,7 +112,8 @@
 // CHECK-C: @STA5_t_align = global i32 8
 // CHECK-C: @g_STA5_t_size = global i32 40
 // CHECK-C: @g_STA5_t_align = global i32 8
-// CHECK-C: @g_STA5_t_align_t = global i32 4
+// CHECK-32: @g_STA5_t_align_t = global i32 4
+// CHECK-64: @g_STA5_t_align_t = global i32 8
 // CHECK-C: @STA5_t_off_t = global i32 0
 // CHECK-C: @STp_t_size = global i32 8
 
