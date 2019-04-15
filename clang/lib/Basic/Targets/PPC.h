@@ -411,6 +411,7 @@ public:
     LongDoubleFormat = &llvm::APFloat::PPCDoubleDouble();
     // Darwin PPC32 directly supports atomics up to 4 bytes.
     MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 32;
+    ABI = "darwin32";
   }
 
   // Respond to the change in alignment for 64bit entities when embedded in
@@ -431,6 +432,7 @@ public:
       : DarwinTargetInfo<PPC64TargetInfo>(Triple, Opts) {
     HasAlignMac68kSupport = true;
     resetDataLayout("E-m:o-i64:64-n32:64");
+    ABI = "darwin64";
   }
 };
 
