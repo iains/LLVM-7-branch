@@ -145,6 +145,8 @@ CODEGENOPT(StrictFloatCastOverflow, 1, 1)
 
 CODEGENOPT(UniformWGSize     , 1, 0) ///< -cl-uniform-work-group-size
 CODEGENOPT(NoZeroInitializedInBSS , 1, 0) ///< -fno-zero-initialized-in-bss.
+CODEGENOPT(NoInitialTextSect , 1, 0) ///< Set for -Wa,-n.
+CODEGENOPT(ForceCPUSubTypeAll , 1, 0) ///< Set for -Wa,-force_CPU_subtype_ALL.
 /// Method of Objective-C dispatch to use.
 ENUM_CODEGENOPT(ObjCDispatchMethod, ObjCDispatchMethodKind, 2, Legacy)
 CODEGENOPT(OmitLeafFramePointer , 1, 0) ///< Set when -momit-leaf-frame-pointer is
