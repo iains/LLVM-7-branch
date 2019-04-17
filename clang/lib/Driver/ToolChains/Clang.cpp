@@ -1975,9 +1975,11 @@ static void CollectArgsForIntegratedAssembler(Compilation &C,
       }
 
       if (Value == "-force_cpusubtype_ALL") {
-        // Do nothing, this is the default and we don't support anything else.
+        CmdArgs.push_back("-force_cpusubtype_ALL");
       } else if (Value == "-L") {
         CmdArgs.push_back("-msave-temp-labels");
+      } else if (Value == "-n") {
+        CmdArgs.push_back("-n");
       } else if (Value == "--fatal-warnings") {
         CmdArgs.push_back("-massembler-fatal-warnings");
       } else if (Value == "--noexecstack") {
@@ -3225,11 +3227,11 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     }
   } else if (isa<AssembleJobAction>(JA)) {
     CmdArgs.push_back("-emit-obj");
-
     CollectArgsForIntegratedAssembler(C, Args, CmdArgs, D);
-
-    // Also ignore explicit -force_cpusubtype_ALL option.
-    (void)Args.hasArg(options::OPT_force__cpusubtype__ALL);
+    if (Triple.getArch() == llvm::Triple::x86 ||
+        Triple.getArch() == llvm::Triple::x86_64 ||
+        Args.hasArg(options::OPT_force__cpusubtype__ALL)) 
+      CmdArgs.push_back("-force_cpusubtype_ALL");
   } else if (isa<PrecompileJobAction>(JA)) {
     // Use PCH if the user requested it.
     bool UsePCH = D.CCCUsePCH;
@@ -5431,9 +5433,6 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   // Add the target features
   getTargetFeatures(getToolChain(), Triple, Args, CmdArgs, true);
 
-  // Ignore explicit -force_cpusubtype_ALL option.
-  (void)Args.hasArg(options::OPT_force__cpusubtype__ALL);
-
   // Pass along any -I options so we get proper .include search paths.
   Args.AddAllArgs(CmdArgs, options::OPT_I_Group);
 
@@ -5562,6 +5561,11 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
 
   CollectArgsForIntegratedAssembler(C, Args, CmdArgs,
                                     getToolChain().getDriver());
+
+  if (getToolChain().getArch() == llvm::Triple::x86 ||
+      getToolChain().getArch() == llvm::Triple::x86_64 ||
+      Args.hasArg(options::OPT_force__cpusubtype__ALL)) 
+    CmdArgs.push_back("-force_cpusubtype_ALL");
 
   Args.AddAllArgs(CmdArgs, options::OPT_mllvm);
 

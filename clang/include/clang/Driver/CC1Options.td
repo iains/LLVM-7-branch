@@ -177,6 +177,10 @@ def mrelocation_model : Separate<["-"], "mrelocation-model">,
   HelpText<"The relocation model to use">, Values<"static,pic,ropi,rwpi,ropi-rwpi,dynamic-no-pic">;
 def fno_math_builtin : Flag<["-"], "fno-math-builtin">,
   HelpText<"Disable implicit builtin knowledge of math functions">;
+
+def n : Flag<["-"], "n">,
+  HelpText<"Don't automatically start assembly file with a text section">;
+
 }
 
 def disable_llvm_verifier : Flag<["-"], "disable-llvm-verifier">,
@@ -826,8 +830,6 @@ def fopenmp_host_ir_file_path : Separate<["-"], "fopenmp-host-ir-file-path">,
 let Flags = [CC1AsOption, NoDriverOption] in {
 
 // Language Options
-def n : Flag<["-"], "n">,
-  HelpText<"Don't automatically start assembly file with a text section">;
 
 // Frontend Options
 def filetype : Separate<["-"], "filetype">,
@@ -847,4 +849,5 @@ def dwarf_debug_producer : Separate<["-"], "dwarf-debug-producer">,
 
 def defsym : Separate<["-"], "defsym">,
   HelpText<"Define a value for a symbol">;
+
 } // let Flags = [CC1AsOption]

@@ -1528,7 +1528,8 @@ def fno_optimize_sibling_calls : Flag<["-"], "fno-optimize-sibling-calls">, Grou
 def foptimize_sibling_calls : Flag<["-"], "foptimize-sibling-calls">, Group<f_Group>;
 def fno_escaping_block_tail_calls : Flag<["-"], "fno-escaping-block-tail-calls">, Group<f_Group>, Flags<[CC1Option]>;
 def fescaping_block_tail_calls : Flag<["-"], "fescaping-block-tail-calls">, Group<f_Group>;
-def force__cpusubtype__ALL : Flag<["-"], "force_cpusubtype_ALL">;
+def force__cpusubtype__ALL : Flag<["-"], "force_cpusubtype_ALL">, Flags<[CC1Option,CC1AsOption]>,
+  HelpText<"Allow assembler instructions for any variant of the current architecture">;
 def force__flat__namespace : Flag<["-"], "force_flat_namespace">;
 def force__load : Separate<["-"], "force_load">;
 def force_addr : Joined<["-"], "fforce-addr">, Group<clang_ignored_f_Group>;
