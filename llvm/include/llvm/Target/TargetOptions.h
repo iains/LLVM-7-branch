@@ -111,7 +111,8 @@ namespace llvm {
           NoTrapAfterNoreturn(false), EmulatedTLS(false),
           ExplicitEmulatedTLS(false), EnableIPRA(false),
           EmitStackSizeSection(false), EnableMachineOutliner(false),
-          SupportsDefaultOutlining(false), EmitAddrsig(false) {}
+          SupportsDefaultOutlining(false), EmitAddrsig(false),
+          NoInitialTextSect(false), CPUSubTypeALL(false) {}
 
     /// PrintMachineCode - This flag is enabled when the -print-machineinstrs
     /// option is specified on the command line, and should enable debugging
@@ -240,6 +241,13 @@ namespace llvm {
 
     /// Emit address-significance table.
     unsigned EmitAddrsig : 1;
+
+    /// Don't assume that the object starts with a .text section.
+    unsigned NoInitialTextSect : 1;
+
+    /// Accept and produce code for any mnemonic in the Arch (even if it's not
+    /// supported by the main mcpu defined).
+    unsigned CPUSubTypeALL : 1;
 
     /// FloatABIType - This setting is set by -float-abi=xxx option is specfied
     /// on the command line. This setting may either be Default, Soft, or Hard.
