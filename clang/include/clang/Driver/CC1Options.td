@@ -180,6 +180,8 @@ def fno_math_builtin : Flag<["-"], "fno-math-builtin">,
 
 def n : Flag<["-"], "n">,
   HelpText<"Don't automatically start assembly file with a text section">;
+def no_compact_unwind : Flag<["-"], "no_compact_unwind">,
+  HelpText<"Don't produce compact unwind">;
 
 }
 

@@ -1980,6 +1980,8 @@ static void CollectArgsForIntegratedAssembler(Compilation &C,
         CmdArgs.push_back("-msave-temp-labels");
       } else if (Value == "-n") {
         CmdArgs.push_back("-n");
+      } else if (Value == "-no_compact_unwind") {
+        CmdArgs.push_back("-no_compact_unwind");
       } else if (Value == "--fatal-warnings") {
         CmdArgs.push_back("-massembler-fatal-warnings");
       } else if (Value == "--noexecstack") {
