@@ -56,6 +56,10 @@ static cl::alias NoWarnW("W", cl::desc("Alias for --no-warn"), cl::aliasopt(NoWa
 static cl::opt<bool> NoDeprecatedWarn("no-deprecated-warn",
                                cl::desc("Suppress all deprecated warnings"));
 
+static cl::opt<bool> NoCompactUnwind("no_compact_unwind",
+                               cl::desc("Don't emit compact unwind, just DWARF"),
+                               cl::init(false));
+
 static cl::opt<std::string>
 ABIName("target-abi", cl::Hidden,
         cl::desc("The name of the ABI to be targeted from the backend."),
@@ -74,6 +78,7 @@ static MCTargetOptions InitMCTargetOptionsFromFlags() {
   Options.MCFatalWarnings = FatalWarnings;
   Options.MCNoWarn = NoWarn;
   Options.MCNoDeprecatedWarn = NoDeprecatedWarn;
+  Options.CompactUnwind = !NoCompactUnwind;
   return Options;
 }
 

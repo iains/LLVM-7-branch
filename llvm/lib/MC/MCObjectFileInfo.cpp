@@ -47,7 +47,7 @@ static bool useCompactUnwind(const Triple &T) {
   return false;
 }
 
-void MCObjectFileInfo::initMachOMCObjectFileInfo(const Triple &T) {
+void MCObjectFileInfo::initMachOMCObjectFileInfo(const Triple &T, bool UseCompactUnwind) {
   // MachO
   SupportsWeakOmittedEHFrame = false;
 
@@ -58,10 +58,10 @@ void MCObjectFileInfo::initMachOMCObjectFileInfo(const Triple &T) {
       SectionKind::getReadOnly());
 
   if (T.isOSDarwin() && T.getArch() == Triple::aarch64)
-    SupportsCompactUnwindWithoutEHFrame = true;
+    SupportsCompactUnwindWithoutEHFrame = UseCompactUnwind;
 
   if (T.isWatchABI())
-    OmitDwarfIfHaveCompactUnwind = true;
+    OmitDwarfIfHaveCompactUnwind = UseCompactUnwind;
 
   PersonalityEncoding = dwarf::DW_EH_PE_indirect | dwarf::DW_EH_PE_pcrel
     | dwarf::DW_EH_PE_sdata4;
@@ -190,7 +190,7 @@ void MCObjectFileInfo::initMachOMCObjectFileInfo(const Triple &T) {
   COFFDebugTypesSection = nullptr;
   COFFGlobalTypeHashesSection = nullptr;
 
-  if (useCompactUnwind(T)) {
+  if (UseCompactUnwind && useCompactUnwind(T)) {
     CompactUnwindSection =
         Ctx->getMachOSection("__LD", "__compact_unwind", MachO::S_ATTR_DEBUG,
                              SectionKind::getReadOnly());
@@ -897,8 +897,8 @@ void MCObjectFileInfo::initWasmMCObjectFileInfo(const Triple &T) {
 }
 
 void MCObjectFileInfo::InitMCObjectFileInfo(const Triple &TheTriple, bool PIC,
-                                            MCContext &ctx,
-                                            bool LargeCodeModel) {
+                                            MCContext &ctx, bool LargeCodeModel,
+                                            bool UseCompactUnwind) {
   PositionIndependent = PIC;
   Ctx = &ctx;
 
@@ -925,7 +925,7 @@ void MCObjectFileInfo::InitMCObjectFileInfo(const Triple &TheTriple, bool PIC,
   switch (TT.getObjectFormat()) {
   case Triple::MachO:
     Env = IsMachO;
-    initMachOMCObjectFileInfo(TT);
+    initMachOMCObjectFileInfo(TT, UseCompactUnwind);
     break;
   case Triple::COFF:
     if (!TT.isOSWindows())

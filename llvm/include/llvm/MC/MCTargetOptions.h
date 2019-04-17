@@ -54,6 +54,7 @@ public:
   bool ShowMCEncoding : 1;
   bool ShowMCInst : 1;
   bool AsmVerbose : 1;
+  bool CompactUnwind : 1;
 
   /// Preserve Comments in Assembly.
   bool PreserveAsmComments : 1;

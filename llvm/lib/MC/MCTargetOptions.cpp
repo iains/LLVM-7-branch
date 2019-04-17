@@ -18,7 +18,7 @@ MCTargetOptions::MCTargetOptions()
       MCSaveTempLabels(false), MCUseDwarfDirectory(false),
       MCIncrementalLinkerCompatible(false), MCPIECopyRelocations(false),
       ShowMCEncoding(false), ShowMCInst(false), AsmVerbose(false),
-      PreserveAsmComments(true) {}
+      CompactUnwind(true), PreserveAsmComments(true) {}
 
 StringRef MCTargetOptions::getABIName() const {
   return ABIName;

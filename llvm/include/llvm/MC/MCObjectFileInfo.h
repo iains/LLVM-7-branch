@@ -209,8 +209,9 @@ protected:
   MCSection *GFIDsSection;
 
 public:
-  void InitMCObjectFileInfo(const Triple &TT, bool PIC, MCContext &ctx,
-                            bool LargeCodeModel = false);
+  void InitMCObjectFileInfo(const Triple &TT, bool PIC, MCContext &ctx, 
+                            bool LargeCodeModel = false,
+                            bool UseCompactUnwind = true);
 
   bool getSupportsWeakOmittedEHFrame() const {
     return SupportsWeakOmittedEHFrame;
@@ -387,7 +388,7 @@ private:
   MCContext *Ctx;
   Triple TT;
 
-  void initMachOMCObjectFileInfo(const Triple &T);
+  void initMachOMCObjectFileInfo(const Triple &T, bool UseCompactUnwind);
   void initELFMCObjectFileInfo(const Triple &T, bool Large);
   void initCOFFMCObjectFileInfo(const Triple &T);
   void initWasmMCObjectFileInfo(const Triple &T);
