@@ -108,7 +108,7 @@
 
 // RUN: %clang_cc1 -triple powerpc-darwin -o - -emit-llvm %s | \
 // RUN: FileCheck %s -check-prefix=PPC32-DARWIN
-// PPC32-DARWIN: target datalayout = "E-m:o-p:32:32-f64:32:64-n32-i1:32:32"
+// PPC32-DARWIN: target datalayout = "E-m:o-p:32:32-f64:32:64-i64:32:64-n32-i1:32:32"
 
 // RUN: %clang_cc1 -triple powerpc64-darwin -o - -emit-llvm %s | \
 // RUN: FileCheck %s -check-prefix=PPC64-DARWIN
