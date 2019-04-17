@@ -493,7 +493,7 @@ LLVM_DEBUG(dbgs() << TheTarget->getName() << " triple named " \
   MCObjectFileInfo MOFI;
   MCContext Ctx(MAI.get(), MRI.get(), &MOFI, &SrcMgr);
   bool PIC = RelocMode == RS_Static ? false : true;
-  MOFI.InitMCObjectFileInfo(TheTriple, PIC, Ctx, LargeCodeModel);
+  MOFI.InitMCObjectFileInfo(TheTriple, PIC, Ctx, LargeCodeModel, !NoCompactUnwind);
 
   if (SaveTempLabels)
     Ctx.setAllowTemporaryLabels(false);
