@@ -130,7 +130,7 @@ static std::string getDataLayoutString(const Triple &T) {
   if (is64Bit || !T.isOSDarwin())
     Ret += "-i64:64";
   else
-    Ret += "-f64:32:64";
+    Ret += "-f64:32:64-i64:32:64";
 
   // PPC64 has 32 and 64 bit registers, PPC32 has only 32 bit ones.
   if (is64Bit)
