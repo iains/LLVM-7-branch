@@ -583,6 +583,10 @@ public:
   /// Return the value for the C99 FLT_EVAL_METHOD macro.
   virtual unsigned getFloatEvalMethod() const { return 0; }
 
+  virtual unsigned getEmbeddedAlignForSize(unsigned Size) const {
+    return Size;
+  }
+
   // getLargeArrayMinWidth/Align - Return the minimum array size that is
   // 'large' and its alignment.
   unsigned getLargeArrayMinWidth() const { return LargeArrayMinWidth; }

@@ -405,8 +405,19 @@ public:
     HasAlignMac68kSupport = true;
     BoolWidth = BoolAlign = 32; // XXX support -mone-byte-bool?
     PtrDiffType = SignedInt; // for http://llvm.org/bugs/show_bug.cgi?id=15726
-    LongLongAlign = 32;
-    resetDataLayout("E-m:o-p:32:32-f64:32:64-n32");
+    // Note that, other than vectors, the on-stack alignment of all types
+    // is only 4bytes (this includes aggregates containing vectors).
+    resetDataLayout("E-m:o-p:32:32-f64:32:64-i64:32:64-n32-i1:32:32");
+    LongDoubleFormat = &llvm::APFloat::PPCDoubleDouble();
+    // Darwin PPC32 directly supports atomics up to 4 bytes.
+    MaxAtomicPromoteWidth = MaxAtomicInlineWidth = 32;
+    ABI = "darwin32";
+  }
+
+  // Respond to the change in alignment for 64bit entities when embedded in
+  // an aggregate.
+  unsigned getEmbeddedAlignForSize(unsigned Size) const override {
+    return Size == 64 ? 32 : Size;
   }
 
   BuiltinVaListKind getBuiltinVaListKind() const override {
@@ -421,6 +432,7 @@ public:
       : DarwinTargetInfo<PPC64TargetInfo>(Triple, Opts) {
     HasAlignMac68kSupport = true;
     resetDataLayout("E-m:o-i64:64-n32:64");
+    ABI = "darwin64";
   }
 };
 

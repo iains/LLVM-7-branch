@@ -67,8 +67,14 @@ bool PPCTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
 void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
                                      MacroBuilder &Builder) const {
   // Target identification.
-  Builder.defineMacro("__ppc__");
-  Builder.defineMacro("__PPC__");
+  bool IsDarwin = getTriple().getOS() == llvm::Triple::Darwin;
+  bool IsLinux = getTriple().getOS() == llvm::Triple::Linux;
+
+  // Darwin makes ppc / ppc64 follow the pointer size.
+  if (PointerWidth == 32 || !IsDarwin) {
+    Builder.defineMacro("__ppc__");
+    Builder.defineMacro("__PPC__");
+  }
   Builder.defineMacro("_ARCH_PPC");
   Builder.defineMacro("__powerpc__");
   Builder.defineMacro("__POWERPC__");
@@ -97,8 +103,11 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
   // This typically is only for a new enough linker (bfd >= 2.16.2 or gold), but
   // our support post-dates this and it should work on all 64-bit ppc linux
   // platforms. It is guaranteed to work on all elfv2 platforms.
-  if (getTriple().getOS() == llvm::Triple::Linux && PointerWidth == 64)
+  if (IsLinux && PointerWidth == 64)
     Builder.defineMacro("_CALL_LINUX", "1");
+
+  if (IsDarwin)
+    Builder.defineMacro("_CALL_DARWIN", "1");
 
   // Subtarget options.
   Builder.defineMacro("__NATURAL_ALIGNMENT__");
@@ -110,9 +119,8 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
     Builder.defineMacro("__LONGDOUBLE128");
   }
 
-  // Define this for elfv2 (64-bit only) or 64-bit darwin.
-  if (ABI == "elfv2" ||
-      (getTriple().getOS() == llvm::Triple::Darwin && PointerWidth == 64))
+  // Define this for elfv2 (64-bit only).
+  if (ABI == "elfv2" && PointerWidth == 64)
     Builder.defineMacro("__STRUCT_PARM_ALIGN__", "16");
 
   if (ArchDefs & ArchDefineName)
@@ -160,6 +168,8 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
   if (HasAltivec) {
     Builder.defineMacro("__VEC__", "10206");
     Builder.defineMacro("__ALTIVEC__");
+    if (IsDarwin)
+      Builder.defineMacro("__APPLE_ALTIVEC__");
   }
   if (HasVSX)
     Builder.defineMacro("__VSX__");
@@ -188,7 +198,6 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
   //
   //   _SOFT_FLOAT_
   //   __RECIP_PRECISION__
-  //   __APPLE_ALTIVEC__
   //   __RECIP__
   //   __RECIPF__
   //   __RSQRTE__
@@ -198,7 +207,6 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
   //   __CMODEL_MEDIUM__
   //   __CMODEL_LARGE__
   //   _CALL_SYSV
-  //   _CALL_DARWIN
   //   __NO_FPRS__
 }
 

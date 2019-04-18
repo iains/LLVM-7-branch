@@ -6984,6 +6984,8 @@
 //
 // PPC-DARWIN:#define _ARCH_PPC 1
 // PPC-DARWIN:#define _BIG_ENDIAN 1
+// PPC-DARWIN:#define _CALL_DARWIN 1
+// PPC-DARWIN-NOT:#define _CALL_ELF
 // PPC-DARWIN:#define __BIGGEST_ALIGNMENT__ 16
 // PPC-DARWIN:#define __BIG_ENDIAN__ 1
 // PPC-DARWIN:#define __BYTE_ORDER__ __ORDER_BIG_ENDIAN__
@@ -7109,6 +7111,7 @@
 // PPC-DARWIN:#define __POINTER_WIDTH__ 32
 // PPC-DARWIN:#define __POWERPC__ 1
 // PPC-DARWIN:#define __PPC__ 1
+// PPC-DARWIN-NOT:#define __PPC64__ 1
 // PPC-DARWIN:#define __PTRDIFF_TYPE__ int
 // PPC-DARWIN:#define __PTRDIFF_WIDTH__ 32
 // PPC-DARWIN:#define __REGISTER_PREFIX__
@@ -7177,9 +7180,15 @@
 // PPC-DARWIN:#define __WINT_WIDTH__ 32
 // PPC-DARWIN:#define __powerpc__ 1
 // PPC-DARWIN:#define __ppc__ 1
+// PPC-DARWIN-NOT:#define __ppc64__ 1
 
 // RUN: %clang_cc1 -E -dM -ffreestanding -triple=powerpc64-apple-darwin8 < /dev/null | FileCheck -match-full-lines -check-prefix PPC64-DARWIN %s
-// PPC64-DARWIN:#define __STRUCT_PARM_ALIGN__ 16
+// PPC64-DARWIN:#define _CALL_DARWIN 1
+// PPC64-DARWIN-NOT:#define _CALL_ELF
+// PPC64-DARWIN:#define __PPC64__ 1
+// PPC64-DARWIN:#define __ppc64__ 1
+// PPC64-DARWIN-NOT:#define __PPC__ 1
+// PPC64-DARWIN-NOT:#define __ppc__ 1
 
 // RUN: %clang_cc1 -x cl -E -dM -ffreestanding -triple=amdgcn < /dev/null | FileCheck -match-full-lines -check-prefix AMDGCN --check-prefix AMDGPU %s
 // RUN: %clang_cc1 -x cl -E -dM -ffreestanding -triple=r600 -target-cpu caicos < /dev/null | FileCheck -match-full-lines --check-prefix AMDGPU %s

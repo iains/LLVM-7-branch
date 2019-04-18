@@ -469,6 +469,9 @@ static void initTargetOptions(llvm::TargetOptions &Options,
   Options.MCOptions.AsmVerbose = CodeGenOpts.AsmVerbose;
   Options.MCOptions.PreserveAsmComments = CodeGenOpts.PreserveAsmComments;
   Options.MCOptions.ABIName = TargetOpts.ABI;
+  Options.MCOptions.CompactUnwind = CodeGenOpts.CompactUnwind;
+  Options.NoInitialTextSect = CodeGenOpts.NoInitialTextSect;
+  Options.CPUSubTypeALL = CodeGenOpts.ForceCPUSubTypeAll;
   for (const auto &Entry : HSOpts.UserEntries)
     if (!Entry.IsFramework &&
         (Entry.Group == frontend::IncludeDirGroup::Quoted ||
