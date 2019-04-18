@@ -1975,9 +1975,13 @@ static void CollectArgsForIntegratedAssembler(Compilation &C,
       }
 
       if (Value == "-force_cpusubtype_ALL") {
-        // Do nothing, this is the default and we don't support anything else.
+        CmdArgs.push_back("-force_cpusubtype_ALL");
       } else if (Value == "-L") {
         CmdArgs.push_back("-msave-temp-labels");
+      } else if (Value == "-n") {
+        CmdArgs.push_back("-n");
+      } else if (Value == "-no_compact_unwind") {
+        CmdArgs.push_back("-no_compact_unwind");
       } else if (Value == "--fatal-warnings") {
         CmdArgs.push_back("-massembler-fatal-warnings");
       } else if (Value == "--noexecstack") {
@@ -3225,11 +3229,11 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
     }
   } else if (isa<AssembleJobAction>(JA)) {
     CmdArgs.push_back("-emit-obj");
-
     CollectArgsForIntegratedAssembler(C, Args, CmdArgs, D);
-
-    // Also ignore explicit -force_cpusubtype_ALL option.
-    (void)Args.hasArg(options::OPT_force__cpusubtype__ALL);
+    if (Triple.getArch() == llvm::Triple::x86 ||
+        Triple.getArch() == llvm::Triple::x86_64 ||
+        Args.hasArg(options::OPT_force__cpusubtype__ALL)) 
+      CmdArgs.push_back("-force_cpusubtype_ALL");
   } else if (isa<PrecompileJobAction>(JA)) {
     // Use PCH if the user requested it.
     bool UsePCH = D.CCCUsePCH;
@@ -4123,6 +4127,50 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (!Args.hasFlag(options::OPT_mstack_arg_probe,
                     options::OPT_mno_stack_arg_probe, true))
     CmdArgs.push_back(Args.MakeArgString("-mno-stack-arg-probe"));
+
+  // Deal with OSX PowerPC alignment options.
+  Arg *alignOptArg = Args.getLastArg(options::OPT_malign_power,
+                                     options::OPT_malign_natural,
+                                     options::OPT_malign_mac68k);
+
+  // Deal with OSX PowerPC long-double size options.
+  Arg *mldblOptArg = Args.getLastArg(options::OPT_mlong_double_128,
+                                     options::OPT_mlong_double_64);
+
+  if (getToolChain().getTriple().isOSDarwin() &&
+      (getToolChain().getArch() == llvm::Triple::ppc ||
+       getToolChain().getArch() == llvm::Triple::ppc64)) {
+    if ((! alignOptArg && getToolChain().getArch() == llvm::Triple::ppc) ||
+        (alignOptArg && alignOptArg->getOption().matches(options::OPT_malign_power))) {
+      // The default is power alignment for ppc...
+      CmdArgs.push_back("-malign-power");
+    } else
+      if ((! alignOptArg && getToolChain().getArch() == llvm::Triple::ppc64) ||
+          (  alignOptArg && alignOptArg->getOption().matches(options::OPT_malign_natural))) {
+      // ... and natural for ppc64.
+      CmdArgs.push_back("-malign-natural");
+    } else { // Must be that 68k was specified.
+      CmdArgs.push_back("-malign-mac68k");
+    }
+    //CmdArgs.push_back("-backend-option");
+    if (! mldblOptArg
+        || mldblOptArg->getOption().matches(options::OPT_mlong_double_128))
+      //CmdArgs.push_back("-ppc-osx-long-double-128");
+      CmdArgs.push_back("-mlong-double-128");
+    else
+      //CmdArgs.push_back("-ppc-osx-long-double-64");
+      CmdArgs.push_back("-mlong-double-64");
+    if (Args.hasArg(options::OPT_mone_byte_bool))
+      CmdArgs.push_back("-mone-byte-bool");
+  } else {
+    if (alignOptArg)
+      // FIXME: Decide if we want to accept the mac68k mode for i386-darwin.
+      D.Diag(diag::err_drv_argument_only_allowed_with)
+           << alignOptArg->getAsString(Args) << "OSX ppc";
+    if (mldblOptArg)
+      D.Diag(diag::err_drv_argument_only_allowed_with)
+           << mldblOptArg->getAsString(Args) << "OSX ppc";
+  }
 
   if (Arg *A = Args.getLastArg(options::OPT_mrestrict_it,
                                options::OPT_mno_restrict_it)) {
@@ -5387,9 +5435,6 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
   // Add the target features
   getTargetFeatures(getToolChain(), Triple, Args, CmdArgs, true);
 
-  // Ignore explicit -force_cpusubtype_ALL option.
-  (void)Args.hasArg(options::OPT_force__cpusubtype__ALL);
-
   // Pass along any -I options so we get proper .include search paths.
   Args.AddAllArgs(CmdArgs, options::OPT_I_Group);
 
@@ -5518,6 +5563,11 @@ void ClangAs::ConstructJob(Compilation &C, const JobAction &JA,
 
   CollectArgsForIntegratedAssembler(C, Args, CmdArgs,
                                     getToolChain().getDriver());
+
+  if (getToolChain().getArch() == llvm::Triple::x86 ||
+      getToolChain().getArch() == llvm::Triple::x86_64 ||
+      Args.hasArg(options::OPT_force__cpusubtype__ALL)) 
+    CmdArgs.push_back("-force_cpusubtype_ALL");
 
   Args.AddAllArgs(CmdArgs, options::OPT_mllvm);
 

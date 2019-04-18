@@ -187,6 +187,9 @@ def gfortran_Group : OptionGroup<"<gfortran group>">,
 Flags that will be passed onto the ``gfortran`` compiler when Clang is given
 a Fortran input.}]>;
 
+def m_osx_ppc_align_Group : OptionGroup<"<m osx ppc alignment group>">, Group<m_Group>;
+def m_osx_ppc_codegen_Group : OptionGroup<"<m osx ppc group>">, Group<m_Group>;
+
 def Link_Group : OptionGroup<"<T/e/s/t/u group>">, DocName<"Linker flags">,
                  DocBrief<[{Flags that are passed on to the linker}]>;
 def T_Group : OptionGroup<"<T group>">, Group<Link_Group>, DocFlatten;
@@ -1525,7 +1528,8 @@ def fno_optimize_sibling_calls : Flag<["-"], "fno-optimize-sibling-calls">, Grou
 def foptimize_sibling_calls : Flag<["-"], "foptimize-sibling-calls">, Group<f_Group>;
 def fno_escaping_block_tail_calls : Flag<["-"], "fno-escaping-block-tail-calls">, Group<f_Group>, Flags<[CC1Option]>;
 def fescaping_block_tail_calls : Flag<["-"], "fescaping-block-tail-calls">, Group<f_Group>;
-def force__cpusubtype__ALL : Flag<["-"], "force_cpusubtype_ALL">;
+def force__cpusubtype__ALL : Flag<["-"], "force_cpusubtype_ALL">, Flags<[CC1Option,CC1AsOption]>,
+  HelpText<"Allow assembler instructions for any variant of the current architecture">;
 def force__flat__namespace : Flag<["-"], "force_flat_namespace">;
 def force__load : Separate<["-"], "force_load">;
 def force_addr : Joined<["-"], "fforce-addr">, Group<clang_ignored_f_Group>;
@@ -1928,6 +1932,7 @@ def mthreads : Joined<["-"], "mthreads">, Group<m_Group>, Flags<[DriverOption]>;
 def mcpu_EQ : Joined<["-"], "mcpu=">, Group<m_Group>;
 def mmcu_EQ : Joined<["-"], "mmcu=">, Group<m_Group>;
 def mdynamic_no_pic : Joined<["-"], "mdynamic-no-pic">, Group<m_Group>;
+def mno_dynamic_no_pic : Joined<["-"], "mno-dynamic-no-pic">, Group<m_Group>;
 def mfix_and_continue : Flag<["-"], "mfix-and-continue">, Group<clang_ignored_m_Group>;
 def mieee_fp : Flag<["-"], "mieee-fp">, Group<clang_ignored_m_Group>;
 def minline_all_stringops : Flag<["-"], "minline-all-stringops">, Group<clang_ignored_m_Group>;
@@ -2117,6 +2122,19 @@ def mno_zvector : Flag<["-"], "mno-zvector">, Alias<fno_zvector>;
 def mbackchain : Flag<["-"], "mbackchain">, Group<m_Group>, Flags<[DriverOption,CC1Option]>,
   HelpText<"Link stack frames through backchain on System Z">;
 def mno_backchain : Flag<["-"], "mno-backchain">, Group<m_Group>, Flags<[DriverOption,CC1Option]>;
+
+def malign_power : Flag<["-"], "malign-power">, Group<m_osx_ppc_align_Group>, Flags<[CC1Option]>,
+  HelpText<"Structures are laid out using the 'power' alignment (OSX ppc only)">;
+def malign_natural : Flag<["-"], "malign-natural">, Group<m_osx_ppc_align_Group>, Flags<[CC1Option]>,
+  HelpText<"Structures are laid out using natural type alignment (OSX ppc only)">;
+def malign_mac68k : Flag<["-"], "malign-mac68k">, Group<m_osx_ppc_align_Group>, Flags<[CC1Option]>;
+
+def mlong_double_128 : Flag<["-"], "mlong-double-128">, Group<m_osx_ppc_codegen_Group>, Flags<[CC1Option]>,
+  HelpText<"Use 128bit IBM-style long double (OSX ppc only)">;
+def mlong_double_64 : Flag<["-"], "mlong-double-64">, Group<m_osx_ppc_codegen_Group>, Flags<[CC1Option]>,
+  HelpText<"Use 64bit IEEE as long double (OSX ppc only)">;
+def mone_byte_bool : Flag<["-"], "mone-byte-bool">, Group<m_osx_ppc_codegen_Group>, Flags<[CC1Option]>,
+  HelpText<"Use non-ABI-compliant one byte bools(OSX ppc only)">;
 
 def mno_warn_nonportable_cfstrings : Flag<["-"], "mno-warn-nonportable-cfstrings">, Group<m_Group>;
 def mno_omit_leaf_frame_pointer : Flag<["-"], "mno-omit-leaf-frame-pointer">, Group<m_Group>;
@@ -2859,6 +2877,8 @@ def fdiagnostics_show_location_EQ : Joined<["-"], "fdiagnostics-show-location=">
 defm fcheck_new : BooleanFFlag<"check-new">, Group<clang_ignored_f_Group>;
 defm caller_saves : BooleanFFlag<"caller-saves">, Group<clang_ignored_gcc_optimization_f_Group>;
 defm reorder_blocks : BooleanFFlag<"reorder-blocks">, Group<clang_ignored_gcc_optimization_f_Group>;
+defm diagnostics_show_caret: BooleanFFlag<"diagnostics-show-caret">, Group<clang_ignored_f_Group>;
+
 defm eliminate_unused_debug_types : BooleanFFlag<"eliminate-unused-debug-types">, Group<clang_ignored_f_Group>;
 defm branch_count_reg : BooleanFFlag<"branch-count-reg">, Group<clang_ignored_gcc_optimization_f_Group>;
 defm default_inline : BooleanFFlag<"default-inline">, Group<clang_ignored_gcc_optimization_f_Group>;
@@ -3006,6 +3026,12 @@ defm sign_zero : BooleanFFlag<"sign-zero">, Group<gfortran_Group>;
 defm stack_arrays : BooleanFFlag<"stack-arrays">, Group<gfortran_Group>;
 defm underscoring : BooleanFFlag<"underscoring">, Group<gfortran_Group>;
 defm whole_file : BooleanFFlag<"whole-file">, Group<gfortran_Group>;
+
+// 'm' flags
+
+// PPC
+defm spe: BooleanFFlag<"spe">, Group<clang_ignored_m_Group>;
+def  mfloat_gprs_EQ: Joined<["-"], "mfloat-gprs=">, Group<clang_ignored_m_Group>;
 
 
 include "CC1Options.td"

@@ -278,6 +278,10 @@ def warn_drv_object_size_disabled_O0 : Warning<
   "the object size sanitizer has no effect at -O0, but is explicitly enabled: %0">,
   InGroup<InvalidCommandLineArgument>, DefaultWarnNoWerror;
 
+def warn_mdynamic_no_pic_override : Warning<
+  "'-mdynamic-no-pic' overrides '-fpic', '-fPIC', '-fpie' or '-fPIE'">,
+  InGroup<UnusedCommandLineArgument>;
+
 def note_drv_command_failed_diag_msg : Note<
   "diagnostic msg: %0">;
 def note_drv_t_option_is_global : Note<

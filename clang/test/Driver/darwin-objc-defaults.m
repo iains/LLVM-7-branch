@@ -92,3 +92,50 @@
 // CHECK-CHECK-ARMV7_IPHONE3_0: -fobjc-runtime=ios-3.0
 // CHECK-CHECK-ARMV7_IPHONE3_0-NOT: -fobjc-dispatch-method
 // CHECK-CHECK-ARMV7_IPHONE3_0: darwin-objc-defaults
+
+// ppc
+
+// RUN: %clang -target powerpc-apple-darwin10 -S -### %s \
+// RUN:   -mmacosx-version-min=10.4 2> %t
+// RUN: FileCheck --check-prefix CHECK-CHECK-PPC_OSX10_4 < %t %s
+
+// CHECK-CHECK-PPC_OSX10_4: "-cc1"
+// CHECK-CHECK-PPC_OSX10_4: -fobjc-runtime=macosx-fragile-10.4
+// CHECK-CHECK-PPC_OSX10_4-NOT: -fobjc-dispatch-method
+// CHECK-CHECK-PPC_OSX10_4: darwin-objc-defaults
+
+// RUN: %clang -target powerpc-apple-darwin10 -S -### %s \
+// RUN:   -mmacosx-version-min=10.5 2> %t
+// RUN: FileCheck --check-prefix CHECK-CHECK-PPC_OSX10_5 < %t %s
+
+// CHECK-CHECK-PPC_OSX10_5: "-cc1"
+// CHECK-CHECK-PPC_OSX10_5: -fobjc-runtime=macosx-fragile-10.5
+// CHECK-CHECK-PPC_OSX10_5-NOT: -fobjc-dispatch-method
+// CHECK-CHECK-PPC_OSX10_5: darwin-objc-defaults
+
+// RUN: %clang -target powerpc64-apple-darwin10 -S -### %s \
+// RUN:   -m32 -mmacosx-version-min=10.4 2> %t
+// RUN: FileCheck --check-prefix CHECK-CHECK-PPCM32_OSX10_4 < %t %s
+
+// CHECK-CHECK-PPCM32_OSX10_4: "-cc1"
+// CHECK-CHECK-PPCM32_OSX10_4: -fobjc-runtime=macosx-fragile-10.4
+// CHECK-CHECK-PPCM32_OSX10_4-NOT: -fobjc-dispatch-method
+// CHECK-CHECK-PPCM32_OSX10_4: darwin-objc-defaults
+
+// RUN: %clang -target powerpc64-apple-darwin10 -S -### %s \
+// RUN:   -m32 -mmacosx-version-min=10.5 2> %t
+// RUN: FileCheck --check-prefix CHECK-CHECK-PPCM32_OSX10_5 < %t %s
+
+// CHECK-CHECK-PPCM32_OSX10_5: "-cc1"
+// CHECK-CHECK-PPCM32_OSX10_5: -fobjc-runtime=macosx-fragile-10.5
+// CHECK-CHECK-PPCM32_OSX10_5-NOT: -fobjc-dispatch-method
+// CHECK-CHECK-PPCM32_OSX10_5: darwin-objc-defaults
+
+// RUN: %clang -target x86_64-apple-darwin10 -S -### %s \
+// RUN:   -arch ppc -mmacosx-version-min=10.5 2> %t
+// RUN: FileCheck --check-prefix CHECK-CHECK-XPPC_OSX10_5 < %t %s
+
+// CHECK-CHECK-XPPC_OSX10_5: "-cc1"
+// CHECK-CHECK-XPPC_OSX10_5: -fobjc-runtime=macosx-fragile-10.5
+// CHECK-CHECK-XPPC_OSX10_5-NOT: -fobjc-dispatch-method
+// CHECK-CHECK-XPPC_OSX10_5: darwin-objc-defaults

@@ -9,7 +9,7 @@
 // CHECK-NO-PIC-NOT: "-pic-is-pie"
 //
 // CHECK-DYNAMIC-NO-PIC2: unsupported option '-mdynamic-no-pic'
-// CHECK-DYNAMIC-NO-PIC2: "-mrelocation-model" "dynamic-no-pic"
+// CHECK-DYNAMIC-NO-PIC2: "-mrelocation-model" "pic" "-pic-level" "2"
 //
 // CHECK-PIC2: "-mrelocation-model" "pic"
 // CHECK-PIC2: "-pic-level" "2"

@@ -777,6 +777,15 @@ static const char *ArmMachOArchNameCPU(StringRef CPU) {
   return Arch.data();
 }
 
+// In universal driver terms, the arch name accepted by -arch isn't exactly
+// the same as the ones that appear in the triple. Roughly speaking, this is
+// an inverse of the darwin::getArchTypeForDarwinArchName() function
+// special cases:
+// aarch64 => arm64
+// thumb/arm => arm
+// powerpc => ppc
+// powerpc64 => ppc64
+
 StringRef MachO::getMachOArchName(const ArgList &Args) const {
   switch (getTriple().getArch()) {
   default:
@@ -796,6 +805,12 @@ StringRef MachO::getMachOArchName(const ArgList &Args) const {
         return Arch;
 
     return "arm";
+
+  case llvm::Triple::ppc:
+    return "ppc";
+
+  case llvm::Triple::ppc64:
+    return "ppc64";
   }
 }
 
@@ -873,8 +888,9 @@ void DarwinClang::addClangWarningOptions(ArgStringList &CC1Args) const {
 
 void DarwinClang::AddLinkARCArgs(const ArgList &Args,
                                  ArgStringList &CmdArgs) const {
-  // Avoid linking compatibility stubs on i386 mac.
-  if (isTargetMacOS() && getArch() == llvm::Triple::x86)
+  // Avoid linking compatibility stubs on i386/ppc mac.
+  if (isTargetMacOS() &&
+      (getArch() == llvm::Triple::x86 || getArch() == llvm::Triple::ppc))
     return;
 
   ObjCRuntime runtime = getDefaultObjCRuntime(/*nonfragile*/ true);
@@ -1158,8 +1174,14 @@ void DarwinClang::AddLinkRuntimeLibArgs(const ArgList &Args,
     // the OS X builtins library.
     if (isMacosxVersionLT(10, 5))
       AddLinkRuntimeLib(Args, CmdArgs, "libclang_rt.10.4.a");
-    else
-      AddLinkRuntimeLib(Args, CmdArgs, "libclang_rt.osx.a");
+    else {
+      // We also distinguish runtimes for <= 10.6, since those contain slices
+      // for ppc (and, maybe one day, ppc64).
+      if (isMacosxVersionLT(10, 7))
+        AddLinkRuntimeLib(Args, CmdArgs, "libclang_rt.10.5.a");
+      else
+        AddLinkRuntimeLib(Args, CmdArgs, "libclang_rt.osx.a");
+    }
   }
 }
 

@@ -90,6 +90,7 @@ struct AssemblerInvocation {
   unsigned SaveTemporaryLabels : 1;
   unsigned GenDwarfForAssembly : 1;
   unsigned RelaxELFRelocations : 1;
+  unsigned CompactUnwind : 1;
   unsigned DwarfVersion;
   std::string DwarfDebugFlags;
   std::string DwarfDebugProducer;
@@ -152,6 +153,7 @@ public:
     NoExecStack = 0;
     FatalWarnings = 0;
     IncrementalLinkerCompatible = 0;
+    CompactUnwind = 1;
     DwarfVersion = 0;
   }
 
@@ -208,6 +210,7 @@ bool AssemblerInvocation::CreateFromArgs(AssemblerInvocation &Opts,
   // Language Options
   Opts.IncludePaths = Args.getAllArgValues(OPT_I);
   Opts.NoInitialTextSection = Args.hasArg(OPT_n);
+  Opts.CompactUnwind = !Args.hasArg(OPT_no_compact_unwind);
   Opts.SaveTemporaryLabels = Args.hasArg(OPT_msave_temp_labels);
   // Any DebugInfoKind implies GenDwarfForAssembly.
   Opts.GenDwarfForAssembly = Args.hasArg(OPT_debug_info_kind_EQ);
@@ -370,7 +373,9 @@ static bool ExecuteAssembler(AssemblerInvocation &Opts,
     PIC = false;
   }
 
-  MOFI->InitMCObjectFileInfo(Triple(Opts.Triple), PIC, Ctx);
+  bool CU = Opts.CompactUnwind;
+  MOFI->InitMCObjectFileInfo(Triple(Opts.Triple), PIC, Ctx,
+                            /*LargeCodeModel*/ false, CU);
   if (Opts.SaveTemporaryLabels)
     Ctx.setAllowTemporaryLabels(false);
   if (Opts.GenDwarfForAssembly)
