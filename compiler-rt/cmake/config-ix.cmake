@@ -262,6 +262,7 @@ if(APPLE)
       ${DARWIN_tvos_MIN_VER_FLAG}=9.0)
   endif()
 
+  if(COMPILER_RT_BUILD_SANITIZERS)
   # Note: In order to target x86_64h on OS X the minimum deployment target must
   # be 10.8 or higher.
   set(SANITIZER_COMMON_SUPPORTED_OS osx)
@@ -285,6 +286,8 @@ if(APPLE)
       message(WARNING "macOS deployment target '${SANITIZER_MIN_OSX_VERSION}' is too new, setting to '10.9' instead.")
       set(SANITIZER_MIN_OSX_VERSION 10.9)
     endif()
+  endif()
+  else()
   endif()
 
   # We're setting the flag manually for each target OS

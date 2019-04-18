@@ -29,7 +29,7 @@ include(CompilerRTUtils)
 
 option(COMPILER_RT_BUILD_BUILTINS "Build builtins" ON)
 mark_as_advanced(COMPILER_RT_BUILD_BUILTINS)
-option(COMPILER_RT_BUILD_SANITIZERS "Build sanitizers" ON)
+option(COMPILER_RT_BUILD_SANITIZERS "Build sanitizers" OFF)
 mark_as_advanced(COMPILER_RT_BUILD_SANITIZERS)
 option(COMPILER_RT_BUILD_XRAY "Build xray" ON)
 mark_as_advanced(COMPILER_RT_BUILD_XRAY)

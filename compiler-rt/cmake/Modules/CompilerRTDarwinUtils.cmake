@@ -11,8 +11,21 @@ function(find_darwin_sdk_dir var sdk_name)
     set(${var} ${DARWIN_${sdk_name}_CACHED_SYSROOT} PARENT_SCOPE)
     return()
   endif()
+  
+  # If we're trying a configuration that needs more than one version
+  # of xcode, assume that the configurer has made a single directory
+  # containing all the SDKs - or symlinks to them.
+  set(result_process 1)
+  if (COMPILER_RT_SDKS_ROOT)
+    string(REGEX MATCH "macosx([0-9.]*)"
+         sdk_matched "${sdk_name}")
+    if (sdk_matched)
+      set(result_process 0)
+      set(var_internal "${COMPILER_RT_SDKS_ROOT}/MacOSX10.10.sdk")
+    endif()
+  else()
+  # Let's first try the internal SDK, otherwise use the public SDK.
   if(NOT DARWIN_PREFER_PUBLIC_SDK)
-    # Let's first try the internal SDK, otherwise use the public SDK.
     execute_process(
       COMMAND xcodebuild -version -sdk ${sdk_name}.internal Path
       RESULT_VARIABLE result_process
@@ -21,7 +34,7 @@ function(find_darwin_sdk_dir var sdk_name)
       ERROR_FILE /dev/null
     )
   endif()
-  if((NOT result_process EQUAL 0) OR "" STREQUAL "${var_internal}")
+  if("" STREQUAL "${var_internal}")
     execute_process(
       COMMAND xcodebuild -version -sdk ${sdk_name} Path
       RESULT_VARIABLE result_process
@@ -32,8 +45,10 @@ function(find_darwin_sdk_dir var sdk_name)
   else()
     set(${var}_INTERNAL ${var_internal} PARENT_SCOPE)
   endif()
+  endif()
   if(result_process EQUAL 0)
     set(${var} ${var_internal} PARENT_SCOPE)
+    message(STATUS "wanted: ${sdk_name} matched ${sdk_matched} but jamming ${var_internal} for now")
   endif()
   set(DARWIN_${sdk_name}_CACHED_SYSROOT ${var_internal} CACHE STRING "Darwin SDK path for SDK ${sdk_name}." FORCE)
 endfunction()
@@ -42,9 +57,15 @@ endfunction()
 # target platform, but ld's version output does list the architectures it can
 # link for.
 function(darwin_get_toolchain_supported_archs output_var)
+   execute_process(
+    COMMAND ${CMAKE_C_COMPILER} ${CMAKE_C_FLAGS} -print-prog-name=ld
+    OUTPUT_VARIABLE LINKER_NAME
+    ERROR_VARIABLE FAILED
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
   execute_process(
-    COMMAND "${CMAKE_LINKER}" -v
-    ERROR_VARIABLE LINKER_VERSION)
+    COMMAND ${LINKER_NAME} -v 2>&1
+    OUTPUT_VARIABLE LINKER_VERSION
+    ERROR_VARIABLE OTHER_ERROR)
 
   string(REGEX MATCH "configured to support archs: ([^\n]+)"
          ARCHES_MATCHED "${LINKER_VERSION}")

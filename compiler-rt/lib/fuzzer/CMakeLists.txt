@@ -1,3 +1,5 @@
+include(CompilerRTCompile)
+
 set(LIBFUZZER_SOURCES
   FuzzerCrossOver.cpp
   FuzzerDataFlowTrace.cpp
