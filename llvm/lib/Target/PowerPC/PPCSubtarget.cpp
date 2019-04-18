@@ -15,6 +15,7 @@
 #include "PPC.h"
 #include "PPCRegisterInfo.h"
 #include "PPCTargetMachine.h"
+#include "PPCMcpu.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineScheduler.h"
 #include "llvm/IR/Attributes.h"
@@ -57,7 +58,7 @@ PPCSubtarget::PPCSubtarget(const Triple &TT, const std::string &CPU,
 
 void PPCSubtarget::initializeEnvironment() {
   StackAlignment = 16;
-  DarwinDirective = PPC::DIR_NONE;
+  Mcpu = PPC::MCPU_NONE;
   HasMFOCRF = false;
   Has64BitSupport = false;
   Use64BitRegs = false;

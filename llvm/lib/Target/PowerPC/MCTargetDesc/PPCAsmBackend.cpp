@@ -7,6 +7,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "PPCMcpu.h"
 #include "MCTargetDesc/PPCFixupKinds.h"
 #include "MCTargetDesc/PPCMCTargetDesc.h"
 #include "llvm/BinaryFormat/ELF.h"
@@ -197,20 +198,24 @@ public:
 };
 } // end anonymous namespace
 
-
 // FIXME: This should be in a separate file.
 namespace {
+
   class DarwinPPCAsmBackend : public PPCAsmBackend {
+    uint32_t InitialSubType;
   public:
-    DarwinPPCAsmBackend(const Target &T) : PPCAsmBackend(T, support::big) { }
+    DarwinPPCAsmBackend(const Target &T, StringRef CPU)
+        : PPCAsmBackend(T, support::big),
+          InitialSubType(PPC::cpuSubTypeFromString(CPU)) { }
 
     std::unique_ptr<MCObjectTargetWriter>
     createObjectTargetWriter() const override {
       bool is64 = getPointerSize() == 8;
+      /* The only subtype value that is recognized for 64b is 'all'.  */
       return createPPCMachObjectWriter(
           /*Is64Bit=*/is64,
           (is64 ? MachO::CPU_TYPE_POWERPC64 : MachO::CPU_TYPE_POWERPC),
-          MachO::CPU_SUBTYPE_POWERPC_ALL);
+          (is64 ? MachO::CPU_SUBTYPE_POWERPC_ALL : InitialSubType));
     }
   };
 
@@ -236,7 +241,7 @@ MCAsmBackend *llvm::createPPCAsmBackend(const Target &T,
                                         const MCTargetOptions &Options) {
   const Triple &TT = STI.getTargetTriple();
   if (TT.isOSDarwin())
-    return new DarwinPPCAsmBackend(T);
+    return new DarwinPPCAsmBackend(T, STI.getCPU());
 
   uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
   bool IsLittleEndian = TT.getArch() == Triple::ppc64le;

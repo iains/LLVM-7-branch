@@ -90,7 +90,8 @@ MCAssembler::MCAssembler(MCContext &Context,
     : Context(Context), Backend(std::move(Backend)),
       Emitter(std::move(Emitter)), Writer(std::move(Writer)),
       BundleAlignSize(0), RelaxAll(false), SubsectionsViaSymbols(false),
-      IncrementalLinkerCompatible(false), ELFHeaderEFlags(0) {
+      IncrementalLinkerCompatible(false), ELFHeaderEFlags(0),
+      MachOCpuSubTypeOverride(0)  {
   VersionInfo.Major = 0; // Major version == 0 for "none specified"
 }
 
@@ -109,6 +110,7 @@ void MCAssembler::reset() {
   SubsectionsViaSymbols = false;
   IncrementalLinkerCompatible = false;
   ELFHeaderEFlags = 0;
+  MachOCpuSubTypeOverride = 0;
   LOHContainer.reset();
   VersionInfo.Major = 0;
 

@@ -30,7 +30,7 @@ define void @testFunc(i64* nocapture %r, i64* nocapture readonly %k) {
 ; CHECK-LABEL: testFunc
 ; CHECK: mflr 0
 ; CHECK: std 0, 16(1)
-; CHECK: bl .[[BRANCHNEXT:[L0-9\$a-z]+]]
+; CHECK: bcl 20, 31, [[BRANCHNEXT:.L[0-9\$a-z]+]]
 ; CHECK-NEXT: [[BRANCHNEXT]]
 L.entry:
   %0 = bitcast i64* %k to i32*

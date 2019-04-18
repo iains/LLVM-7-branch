@@ -18,6 +18,7 @@
 #include "PPCInstrBuilder.h"
 #include "PPCMachineFunctionInfo.h"
 #include "PPCTargetMachine.h"
+#include "PPCMcpu.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/Statistic.h"
 #include "llvm/CodeGen/LiveIntervals.h"
@@ -110,9 +111,9 @@ ScheduleHazardRecognizer *
 PPCInstrInfo::CreateTargetHazardRecognizer(const TargetSubtargetInfo *STI,
                                            const ScheduleDAG *DAG) const {
   unsigned Directive =
-      static_cast<const PPCSubtarget *>(STI)->getDarwinDirective();
-  if (Directive == PPC::DIR_440 || Directive == PPC::DIR_A2 ||
-      Directive == PPC::DIR_E500mc || Directive == PPC::DIR_E5500) {
+      static_cast<const PPCSubtarget *>(STI)->getMcpu();
+  if (Directive == PPC::MCPU_440 || Directive == PPC::MCPU_A2 ||
+      Directive == PPC::MCPU_E500mc || Directive == PPC::MCPU_E5500) {
     const InstrItineraryData *II =
         static_cast<const PPCSubtarget *>(STI)->getInstrItineraryData();
     return new ScoreboardHazardRecognizer(II, DAG);
@@ -127,15 +128,15 @@ ScheduleHazardRecognizer *
 PPCInstrInfo::CreateTargetPostRAHazardRecognizer(const InstrItineraryData *II,
                                                  const ScheduleDAG *DAG) const {
   unsigned Directive =
-      DAG->MF.getSubtarget<PPCSubtarget>().getDarwinDirective();
+      DAG->MF.getSubtarget<PPCSubtarget>().getMcpu();
 
   // FIXME: Leaving this as-is until we have POWER9 scheduling info
-  if (Directive == PPC::DIR_PWR7 || Directive == PPC::DIR_PWR8)
+  if (Directive == PPC::MCPU_PWR7 || Directive == PPC::MCPU_PWR8)
     return new PPCDispatchGroupSBHazardRecognizer(II, DAG);
 
   // Most subtargets use a PPC970 recognizer.
-  if (Directive != PPC::DIR_440 && Directive != PPC::DIR_A2 &&
-      Directive != PPC::DIR_E500mc && Directive != PPC::DIR_E5500) {
+  if (Directive != PPC::MCPU_440 && Directive != PPC::MCPU_A2 &&
+      Directive != PPC::MCPU_E500mc && Directive != PPC::MCPU_E5500) {
     assert(DAG->TII && "No InstrInfo?");
 
     return new PPCHazardRecognizer970(*DAG);
@@ -204,20 +205,20 @@ int PPCInstrInfo::getOperandLatency(const InstrItineraryData *ItinData,
 
     // On some cores, there is an additional delay between writing to a condition
     // register, and using it from a branch.
-    unsigned Directive = Subtarget.getDarwinDirective();
+    unsigned Directive = Subtarget.getMcpu();
     switch (Directive) {
     default: break;
-    case PPC::DIR_7400:
-    case PPC::DIR_750:
-    case PPC::DIR_970:
-    case PPC::DIR_E5500:
-    case PPC::DIR_PWR4:
-    case PPC::DIR_PWR5:
-    case PPC::DIR_PWR5X:
-    case PPC::DIR_PWR6:
-    case PPC::DIR_PWR6X:
-    case PPC::DIR_PWR7:
-    case PPC::DIR_PWR8:
+    case PPC::MCPU_7400:
+    case PPC::MCPU_750:
+    case PPC::MCPU_970:
+    case PPC::MCPU_E5500:
+    case PPC::MCPU_PWR4:
+    case PPC::MCPU_PWR5:
+    case PPC::MCPU_PWR5X:
+    case PPC::MCPU_PWR6:
+    case PPC::MCPU_PWR6X:
+    case PPC::MCPU_PWR7:
+    case PPC::MCPU_PWR8:
     // FIXME: Is this needed for POWER9?
       Latency += 2;
       break;
@@ -457,15 +458,15 @@ void PPCInstrInfo::insertNoop(MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator MI) const {
   // This function is used for scheduling, and the nop wanted here is the type
   // that terminates dispatch groups on the POWER cores.
-  unsigned Directive = Subtarget.getDarwinDirective();
+  unsigned Directive = Subtarget.getMcpu();
   unsigned Opcode;
   switch (Directive) {
   default:            Opcode = PPC::NOP; break;
-  case PPC::DIR_PWR6: Opcode = PPC::NOP_GT_PWR6; break;
-  case PPC::DIR_PWR7: Opcode = PPC::NOP_GT_PWR7; break;
-  case PPC::DIR_PWR8: Opcode = PPC::NOP_GT_PWR7; break; /* FIXME: Update when P8 InstrScheduling model is ready */
+  case PPC::MCPU_PWR6: Opcode = PPC::NOP_GT_PWR6; break;
+  case PPC::MCPU_PWR7: Opcode = PPC::NOP_GT_PWR7; break;
+  case PPC::MCPU_PWR8: Opcode = PPC::NOP_GT_PWR7; break; /* FIXME: Update when P8 InstrScheduling model is ready */
   // FIXME: Update when POWER9 scheduling model is ready.
-  case PPC::DIR_PWR9: Opcode = PPC::NOP_GT_PWR7; break;
+  case PPC::MCPU_PWR9: Opcode = PPC::NOP_GT_PWR7; break;
   }
 
   DebugLoc DL;

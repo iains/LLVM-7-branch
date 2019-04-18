@@ -24,12 +24,15 @@ PPCMCAsmInfoDarwin::PPCMCAsmInfoDarwin(bool is64Bit, const Triple& T) {
   }
   IsLittleEndian = false;
 
-  SeparatorString = "@";
+  // Use the same comment and separator markers as cctools.
   CommentString = ";";
+  SeparatorString = "@";
+  // ... and PC.
+  DollarIsPC = true;
+
   ExceptionsType = ExceptionHandling::DwarfCFI;
 
-  if (!is64Bit)
-    Data64bitsDirective = nullptr; // We can't emit a 64-bit unit in PPC32 mode.
+  Data64bitsDirective = is64Bit ? "\t.quad\t" : nullptr;
 
   AssemblerDialect = 1;           // New-Style mnemonics.
   SupportsDebugInformation= true; // Debug information.

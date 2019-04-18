@@ -522,35 +522,35 @@ MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x24
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (14)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_LO14_SECTDIFF (14)
 MACHO-PPC64-NEXT:         Value: 0x64
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x0
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (1)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_PAIR (1)
 MACHO-PPC64-NEXT:         Value: 0xC
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x1C
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (12)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_HA16_SECTDIFF (12)
 MACHO-PPC64-NEXT:         Value: 0x64
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x58
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (1)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_PAIR (1)
 MACHO-PPC64-NEXT:         Value: 0xC
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x18
 MACHO-PPC64-NEXT:         PCRel: 1
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (3)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_BR24 (3)
 MACHO-PPC64-NEXT:         Section: __picsymbolstub1 (2)
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:     ]
@@ -596,28 +596,28 @@ MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x14
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (14)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_LO14_SECTDIFF (14)
 MACHO-PPC64-NEXT:         Value: 0x6C
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x0
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (1)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_PAIR (1)
 MACHO-PPC64-NEXT:         Value: 0x48
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0xC
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (12)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_HA16_SECTDIFF (12)
 MACHO-PPC64-NEXT:         Value: 0x6C
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x24
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 2
-MACHO-PPC64-NEXT:         Type:  (1)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_PAIR (1)
 MACHO-PPC64-NEXT:         Value: 0x48
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:     ]
@@ -707,7 +707,7 @@ MACHO-PPC64-NEXT:       Relocation {
 MACHO-PPC64-NEXT:         Offset: 0x0
 MACHO-PPC64-NEXT:         PCRel: 0
 MACHO-PPC64-NEXT:         Length: 3
-MACHO-PPC64-NEXT:         Type:  (0)
+MACHO-PPC64-NEXT:         Type: PPC_RELOC_VANILLA (0)
 MACHO-PPC64-NEXT:         Symbol: dyld_stub_binding_helper (5)
 MACHO-PPC64-NEXT:       }
 MACHO-PPC64-NEXT:     ]

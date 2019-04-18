@@ -19,6 +19,7 @@
 #include "PPCFrameLowering.h"
 #include "PPCInstrInfo.h"
 #include "PPCMachineFunctionInfo.h"
+#include "PPCMcpu.h"
 #include "PPCPerfectShuffle.h"
 #include "PPCRegisterInfo.h"
 #include "PPCSubtarget.h"
@@ -1128,21 +1129,21 @@ PPCTargetLowering::PPCTargetLowering(const PPCTargetMachine &TM,
   if (Subtarget.isDarwin())
     setPrefFunctionAlignment(4);
 
-  switch (Subtarget.getDarwinDirective()) {
+  switch (Subtarget.getMcpu()) {
   default: break;
-  case PPC::DIR_970:
-  case PPC::DIR_A2:
-  case PPC::DIR_E500:
-  case PPC::DIR_E500mc:
-  case PPC::DIR_E5500:
-  case PPC::DIR_PWR4:
-  case PPC::DIR_PWR5:
-  case PPC::DIR_PWR5X:
-  case PPC::DIR_PWR6:
-  case PPC::DIR_PWR6X:
-  case PPC::DIR_PWR7:
-  case PPC::DIR_PWR8:
-  case PPC::DIR_PWR9:
+  case PPC::MCPU_970:
+  case PPC::MCPU_A2:
+  case PPC::MCPU_E500:
+  case PPC::MCPU_E500mc:
+  case PPC::MCPU_E5500:
+  case PPC::MCPU_PWR4:
+  case PPC::MCPU_PWR5:
+  case PPC::MCPU_PWR5X:
+  case PPC::MCPU_PWR6:
+  case PPC::MCPU_PWR6X:
+  case PPC::MCPU_PWR7:
+  case PPC::MCPU_PWR8:
+  case PPC::MCPU_PWR9:
     setPrefFunctionAlignment(4);
     setPrefLoopAlignment(4);
     break;
@@ -1157,15 +1158,15 @@ PPCTargetLowering::PPCTargetLowering(const PPCTargetMachine &TM,
 
   // The Freescale cores do better with aggressive inlining of memcpy and
   // friends. GCC uses same threshold of 128 bytes (= 32 word stores).
-  if (Subtarget.getDarwinDirective() == PPC::DIR_E500mc ||
-      Subtarget.getDarwinDirective() == PPC::DIR_E5500) {
+  if (Subtarget.getMcpu() == PPC::MCPU_E500mc ||
+      Subtarget.getMcpu() == PPC::MCPU_E5500) {
     MaxStoresPerMemset = 32;
     MaxStoresPerMemsetOptSize = 16;
     MaxStoresPerMemcpy = 32;
     MaxStoresPerMemcpyOptSize = 8;
     MaxStoresPerMemmove = 32;
     MaxStoresPerMemmoveOptSize = 8;
-  } else if (Subtarget.getDarwinDirective() == PPC::DIR_A2) {
+  } else if (Subtarget.getMcpu() == PPC::MCPU_A2) {
     // The A2 also benefits from (very) aggressive inlining of memcpy and
     // friends. The overhead of a the function call, even when warm, can be
     // over one hundred cycles.
@@ -10865,14 +10866,14 @@ unsigned PPCTargetLowering::combineRepeatedFPDivisors() const {
   // Combine multiple FDIVs with the same divisor into multiple FMULs by the
   // reciprocal if there are two or more FDIVs (for embedded cores with only
   // one FP pipeline) for three or more FDIVs (for generic OOO cores).
-  switch (Subtarget.getDarwinDirective()) {
+  switch (Subtarget.getMcpu()) {
   default:
     return 3;
-  case PPC::DIR_440:
-  case PPC::DIR_A2:
-  case PPC::DIR_E500:
-  case PPC::DIR_E500mc:
-  case PPC::DIR_E5500:
+  case PPC::MCPU_440:
+  case PPC::MCPU_A2:
+  case PPC::MCPU_E500:
+  case PPC::MCPU_E500mc:
+  case PPC::MCPU_E5500:
     return 2;
   }
 }
@@ -13189,17 +13190,17 @@ void PPCTargetLowering::computeKnownBitsForTargetNode(const SDValue Op,
 }
 
 unsigned PPCTargetLowering::getPrefLoopAlignment(MachineLoop *ML) const {
-  switch (Subtarget.getDarwinDirective()) {
+  switch (Subtarget.getMcpu()) {
   default: break;
-  case PPC::DIR_970:
-  case PPC::DIR_PWR4:
-  case PPC::DIR_PWR5:
-  case PPC::DIR_PWR5X:
-  case PPC::DIR_PWR6:
-  case PPC::DIR_PWR6X:
-  case PPC::DIR_PWR7:
-  case PPC::DIR_PWR8:
-  case PPC::DIR_PWR9: {
+  case PPC::MCPU_970:
+  case PPC::MCPU_PWR4:
+  case PPC::MCPU_PWR5:
+  case PPC::MCPU_PWR5X:
+  case PPC::MCPU_PWR6:
+  case PPC::MCPU_PWR6X:
+  case PPC::MCPU_PWR7:
+  case PPC::MCPU_PWR8:
+  case PPC::MCPU_PWR9: {
     if (!ML)
       break;
 

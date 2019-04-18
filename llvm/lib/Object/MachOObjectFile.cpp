@@ -1135,6 +1135,25 @@ static Error checkThreadCommand(const MachOObjectFile &Obj,
                               "flavor number " + Twine(nflavor) + " in " +
                               CmdName + " command");
       }
+    } else if (cputype == MachO::CPU_TYPE_POWERPC64) {
+      if (flavor == MachO::PPC_THREAD_STATE64) {
+        if (count != MachO::PPC_THREAD_STATE64_COUNT)
+          return malformedError("load command " + Twine(LoadCommandIndex) +
+                                " count not PPC_THREAD_STATE_COUNT for "
+                                "flavor number " + Twine(nflavor) + " which is "
+                                "a PPC_THREAD_STATE flavor in " + CmdName +
+                                " command");
+        if (state + sizeof(MachO::ppc_thread_state64_t) > end)
+          return malformedError("load command " + Twine(LoadCommandIndex) +
+                                " PPC_THREAD_STATE extends past end of "
+                                "command in " + CmdName + " command");
+        state += sizeof(MachO::ppc_thread_state64_t);
+      } else {
+        return malformedError("load command " + Twine(LoadCommandIndex) +
+                              " unknown flavor (" + Twine(flavor) + ") for "
+                              "flavor number " + Twine(nflavor) + " in " +
+                              CmdName + " command");
+      }
     } else {
       return malformedError("unknown cputype (" + Twine(cputype) + ") load "
                             "command " + Twine(LoadCommandIndex) + " for " +
@@ -2188,6 +2207,7 @@ void MachOObjectFile::getRelocationTypeName(
         res = Table[RType];
       break;
     }
+    case Triple::ppc64: // PPC64 and PPC share relocations.
     case Triple::ppc: {
       static const char *const Table[] =  {
         "PPC_RELOC_VANILLA",
@@ -2623,6 +2643,8 @@ Triple MachOObjectFile::getArchTriple(uint32_t CPUType, uint32_t CPUSubType,
   case MachO::CPU_TYPE_POWERPC:
     switch (CPUSubType & ~MachO::CPU_SUBTYPE_MASK) {
     case MachO::CPU_SUBTYPE_POWERPC_ALL:
+    case MachO::CPU_SUBTYPE_POWERPC_7400:
+    case MachO::CPU_SUBTYPE_POWERPC_7450:
       if (ArchFlag)
         *ArchFlag = "ppc";
       return Triple("ppc-apple-darwin");
