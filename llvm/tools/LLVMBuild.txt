@@ -21,6 +21,7 @@ subdirectories =
  dsymutil
  llc
  lli
+ llas
  llvm-ar
  llvm-as
  llvm-bcanalyzer
