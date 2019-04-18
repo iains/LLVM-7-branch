@@ -85,17 +85,21 @@ class DarwinLocalTI(DefaultTargetInfo):
 
     def get_sdk_version(self, name):
         assert self.is_host_macosx()
-        cmd = ['xcrun', '--sdk', name, '--show-sdk-path']
-        try:
-            out = subprocess.check_output(cmd).strip()
-        except OSError:
-            pass
-
+        res = 0
+        out = self.full_config.get_lit_conf('sysroot')
         if not out:
+            cmd = ['xcrun', '--sdk', name, '--show-sdk-path']
+            try:
+                out = subprocess.check_output(cmd).strip()
+            except OSError:
+                res = -1
+        full_config.lit_config.note('out: %r' % out)
+        if res == 0 and out:
+            return re.sub(r'.*/[^0-9]+([0-9.]+)\.sdk', r'\1', out)
+        else:
             self.full_config.lit_config.fatal(
                     "cannot infer sdk version with: %r" % cmd)
-
-        return re.sub(r'.*/[^0-9]+([0-9.]+)\.sdk', r'\1', out)
+        return '10.4'
 
     def get_platform(self):
         platform = self.full_config.get_lit_conf('platform')
@@ -122,23 +126,25 @@ class DarwinLocalTI(DefaultTargetInfo):
         add_common_locales(features, self.full_config.lit_config)
 
     def add_cxx_compile_flags(self, flags):
-        if self.full_config.use_deployment:
-            _, name, _ = self.full_config.config.deployment
-            cmd = ['xcrun', '--sdk', name, '--show-sdk-path']
+        res = 0
+        if self.full_config.get_lit_conf('sysroot') != '':
+            # Other logic will add --sysroot= with this value, don't
+            # need to replicate, and don't want to override with whatever
+            # Xcode happens to have.
+            out = ''
         else:
             cmd = ['xcrun', '--show-sdk-path']
-        try:
-            out = subprocess.check_output(cmd).strip()
-            res = 0
-        except OSError:
-            res = -1
+            try:
+                out = subprocess.check_output(cmd).strip()
+            except OSError:
+                res = -1
         if res == 0 and out:
             sdk_path = out
             self.full_config.lit_config.note('using SDKROOT: %r' % sdk_path)
             flags += ["-isysroot", sdk_path]
 
     def add_cxx_link_flags(self, flags):
-        flags += ['-lSystem']
+        flags += [ '-latomic', '-lgcc_s.10.5', '-lSystem']
 
     def configure_env(self, env):
         library_paths = []

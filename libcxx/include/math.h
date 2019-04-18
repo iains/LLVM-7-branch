@@ -298,7 +298,25 @@ long double    truncl(long double x);
 #pragma GCC system_header
 #endif
 
+// The C++11 standard requires C99, but whether or not __STDC_VERSION__
+// is accordingly set is implementation-defined.
+// on darwin10: C99 is explicltly required to enable long long returning
+// functions, like llrint and llround.
+// Alternatively, undefine __STRICT_ANSI__ for those symbols.
+// This is just a convenient, isolated workaround.
+#if defined(__APPLE__) && (__cplusplus >= 201101L) \
+    && !defined(__STDC_VERSION__) && defined(__STRICT_ANSI__)
+#define	__IMPLICIT_STDC_VERSION_C99__
+#undef	__STRICT_ANSI__
+#endif
+
 #include_next <math.h>
+
+#ifdef	__IMPLICIT_STDC_VERSION_C99__
+// Undo the temporary change made above.
+#define	__STRICT_ANSI__
+// __IMPLICIT_STDC_VERSION_C99__ remains defined as evidence of what happened
+#endif
 
 #ifdef __cplusplus
 

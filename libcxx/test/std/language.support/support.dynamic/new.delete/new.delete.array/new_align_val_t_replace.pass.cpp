@@ -10,6 +10,8 @@
 // UNSUPPORTED: c++98, c++03, c++11, c++14
 // UNSUPPORTED: sanitizer-new-delete
 
+// UNSUPPORTED: macosx10.5
+
 // NOTE: GCC doesn't provide the -faligned-allocation flag to test for
 // XFAIL: no-aligned-allocation && !gcc
 

@@ -497,6 +497,11 @@ class Configuration(object):
            self.cxx.hasCompileFlag(["-x", "objective-c++", "-fobjc-arc"]):
             self.config.available_features.add("objective-c++")
 
+        if self.target_info.platform() == "darwin" and \
+           self.target_info.is_host_macosx():
+            t, name, vers = self.target_info.get_platform()
+            self.config.available_features.add(name + vers)
+
     def configure_compile_flags(self):
         no_default_flags = self.get_lit_bool('no_default_flags', False)
         if not no_default_flags:

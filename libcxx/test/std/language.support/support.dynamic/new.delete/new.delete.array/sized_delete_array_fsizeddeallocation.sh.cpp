@@ -18,7 +18,8 @@
 // XFAIL: availability_markup=macosx10.9
 // XFAIL: availability_markup=macosx10.8
 // XFAIL: availability_markup=macosx10.7
-
+// XFAIL: availability_markup=macosx10.6
+// XFAIL: availability_markup=macosx10.5
 
 // NOTE: Only clang-3.7 and GCC 5.1 and greater support -fsized-deallocation.
 // REQUIRES: fsized-deallocation
