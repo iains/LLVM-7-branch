@@ -315,8 +315,12 @@ void PPCMachObjectWriter::recordScatteredRelocation(
     case MachO::PPC_RELOC_SECTDIFF:
     case MachO::PPC_RELOC_LOCAL_SECTDIFF:
       break;
-    case MachO::PPC_RELOC_LO16_SECTDIFF:
     case MachO::PPC_RELOC_LO14_SECTDIFF:
+      if (FixedValue & 3)
+        Asm.getContext().reportError(Fixup.getLoc(), 
+            Twine("Offset is not valid for sect-diff operation."));
+      // FALLTHROUGH
+    case MachO::PPC_RELOC_LO16_SECTDIFF:
       OtherHalf = (FixedValue >> 16) & 0xffff;
       // applyFixupOffset longer extracts the high part because it now assumes
       // this was already done.   It looks like this is not true for the
@@ -347,8 +351,12 @@ void PPCMachObjectWriter::recordScatteredRelocation(
     uint32_t OtherHalf = 0;
     bool NeedRegularPair = true;
     switch (Type) {
-    case MachO::PPC_RELOC_LO16:
     case MachO::PPC_RELOC_LO14:
+      if (FixedValue & 3)
+        Asm.getContext().reportError(Fixup.getLoc(), 
+            Twine("Offset is not valid for operation."));
+      // FALLTHROUGH
+    case MachO::PPC_RELOC_LO16:
       OtherHalf = (FixedValue >> 16) & 0xffff;
       // see comment above.
       FixedValue &= 0xffff;
@@ -441,8 +449,12 @@ void PPCMachObjectWriter::recordRegularRelocation(
   default:
     NeedsPair = false;
    break;
-  case MachO::PPC_RELOC_LO16:
   case MachO::PPC_RELOC_LO14:
+    if (FixedValue & 3)
+        Asm.getContext().reportError(Fixup.getLoc(), 
+            Twine("Offset is not valid for LO14 reloc."));
+    // FALLTHROUGH
+  case MachO::PPC_RELOC_LO16:
       OtherHalf = (FixedValue >> 16) & 0xffff;
       FixedValue &= 0xffff;
       break;
