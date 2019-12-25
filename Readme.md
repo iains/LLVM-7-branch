@@ -1,3 +1,12 @@
+# LLVM 7.1.1 Darwin WIP
+
+ * This adds:
+   * A check that the offset data to PPC LO14 relocations is valid.
+   * A backport of the LLVM-9+ changes that allow AVX512 assembler
+     syntax compatibility with GAS.
+
+** WARNING **  *as things progress, rebasing WILL occur - so caveat!*
+
 # LLVM 7.1 Darwin WIP
 
 ** WARNING **  *as things progress, rebasing WILL occur - so caveat!*
