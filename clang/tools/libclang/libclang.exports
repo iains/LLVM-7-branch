@@ -368,5 +368,3 @@ clang_EvalResult_dispose
 clang_PrintingPolicy_getProperty
 clang_PrintingPolicy_setProperty
 clang_PrintingPolicy_dispose
-__emutls_get_address
-__emutls_register_common
